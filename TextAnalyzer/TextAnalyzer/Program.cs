@@ -16,13 +16,22 @@ namespace TextAnalyzer
             RssReader reader = new RssReader();
             var rssItem = reader.Init();
             TextProcessor tProcessor = new TextProcessor(rssItem);
+            var textProcessingResult = tProcessor.Init();
+            Matrix matrixCalculator = new Matrix();
+            var factorizeResult = matrixCalculator.Factorize(textProcessingResult.Item2);
+
+
+            for (int i = 0; i < 10; i++)
+            {
+                Console.WriteLine(textProcessingResult.Item1[i]);
+            }
 
             Console.WriteLine("\nEnd");
             Console.ReadKey();
         }
     }
 
-    class RssReader
+    public class RssReader
     {
         string[] rssUrl = new string[] { "http://rss.newsru.com/all_news/", "https://news.yandex.ru/index.rss",
             "https://news.yandex.ru/world.rss", "https://news.yandex.ru/finances.rss", "https://news.yandex.ru/incident.rss",
@@ -32,16 +41,6 @@ namespace TextAnalyzer
         {
             return RssOpen();
         }
-
-        //public RssReader()
-        //{
-        //    RssOpen();
-
-        //    for (int i = 0; i < 10; i++)
-        //    {
-        //        Console.WriteLine(wordVector[i]);
-        //    }
-        //}
 
         List<SyndicationItem> RssOpen()
         {
@@ -57,23 +56,30 @@ namespace TextAnalyzer
                 }
             }
             return rssItem;
-
-            //CreateMatrix();
         }
     }
 
-    class TextProcessor
+    public class TextProcessor
     {
         Dictionary<string, int> allWords = new Dictionary<string, int>();
         List<Dictionary<string, int>> articleWords = new List<Dictionary<string, int>>();
         List<string> wordVector = new List<string>();
-        int[,] wordMatrix;
+        List<string> articleTitle = new List<string>();
+        double[,] wordMatrix;
         int c = 0;
+
+        List<SyndicationItem> rssItem;
 
         public TextProcessor(List<SyndicationItem> rssItem)
         {
-            var _rssItem = rssItem;
-            RssProcessing(_rssItem);
+            this.rssItem = rssItem;
+        }
+
+        public Tuple<List<string>, double[,], List<string>> Init()
+        {
+            RssProcessing(rssItem);
+            CreateTextMatrix();
+            return new Tuple<List<string>, double[,], List<string>>(wordVector, wordMatrix, articleTitle);
         }
 
         void RssProcessing(List<SyndicationItem> _rssItem)
@@ -91,6 +97,7 @@ namespace TextAnalyzer
         {
             string[] words = body.Split(new[] { ' ', ',', ':', '?', '!', '.', '"', '-', '—' }, StringSplitOptions.RemoveEmptyEntries);
             articleWords.Add(new Dictionary<string, int>());
+            articleTitle.Add(title);
             foreach (string word in words)
             {
                 string lowerWord = word.ToLower();
@@ -114,12 +121,8 @@ namespace TextAnalyzer
             }
             c++;
         }
-    }
 
-    class Matrix
-    {
-
-        void CreateMatrix()
+        void CreateTextMatrix()
         {
             foreach (string word in allWords.Keys)
             {
@@ -129,7 +132,7 @@ namespace TextAnalyzer
                 }
             }
 
-            wordMatrix = new int[articleWords.Count, wordVector.Count];
+            wordMatrix = new double[articleWords.Count, wordVector.Count];
 
             for (int x = 0; x < articleWords.Count; x++)
             {
@@ -143,10 +146,12 @@ namespace TextAnalyzer
                     else wordMatrix[x, y] = 0;
                 }
             }
-            var a = wordMatrix.GetLength(1);
         }
+    }
 
-        double MatrixCost(int[,] a, int[,] b)
+    public class Matrix
+    {
+        public double MatrixCost(double[,] a, double[,] b)
         {
             double cost = 0;
             for (int x = 0; x < a.GetLength(0); x++)
@@ -159,22 +164,119 @@ namespace TextAnalyzer
             return cost;
         }
 
-        void Factorize(int[,] a, int pc = 10, int iter = 50)
+        public double[,] Transpose(double[,] source)
         {
-            int ic = a.GetLength(0);
-            int fc = a.GetLength(1);
+            double[,] output = new double[source.GetLength(1), source.GetLength(0)];
+            for (int i = 0; i < source.GetLength(0); i++)
+            {
+                for (int j = 0; j < source.GetLength(1); j++)
+                {
+                    output[j, i] = source[i, j];
+                }
+            }
+            return output;
+        }
+
+        public int[,] Multiply(int[,] a, int[,] b)
+        {
+            int[,] output = new int[a.GetLength(0), b.GetLength(1)];
+            if (a.GetLength(1) == b.GetLength(0))
+            {
+                for (int i = 0; i < a.GetLength(0); i++)
+                {
+                    for (int j = 0; j < b.GetLength(1); j++)
+                    {
+                        output[i, j] = 0;
+                        for (int k = 0; k < a.GetLength(1); k++) // OR k<b.GetLength(0)
+                            output[i, j] = output[i, j] + a[i, k] * b[k, j];
+                    }
+                }
+            }
+            return output;
+        }
+
+        public double[,] Multiply(double[,] a, double[,] b)
+        {
+            double[,] output = new double[a.GetLength(0), b.GetLength(1)];
+            if (a.GetLength(1) == b.GetLength(0))
+            {
+                for (int i = 0; i < a.GetLength(0); i++)
+                {
+                    for (int j = 0; j < b.GetLength(1); j++)
+                    {
+                        output[i, j] = 0;
+                        for (int k = 0; k < a.GetLength(1); k++) // OR k<b.GetLength(0)
+                            output[i, j] = output[i, j] + a[i, k] * b[k, j];
+                    }
+                }
+            }
+            return output;
+        }
+
+        public double[,] SeqDivision(int[,] a, int[,] b)
+        {
+            double[,] output = new double[a.GetLength(0), a.GetLength(1)];
+            if (a.GetLength(1) == b.GetLength(1) && a.GetLength(0) == b.GetLength(0))
+            {
+                for (int i = 0; i < a.GetLength(0); i++)
+                {
+                    for (int j = 0; j < b.GetLength(1); j++)
+                    {
+                        output[i, j] = (double)a[i, j] / (double)b[i, j];
+                    }
+                }
+            }
+            return output;
+        }
+
+        public double[,] SeqDivision(double[,] a, double[,] b)
+        {
+            double[,] output = new double[a.GetLength(0), a.GetLength(1)];
+            if (a.GetLength(1) == b.GetLength(1) && a.GetLength(0) == b.GetLength(0))
+            {
+                for (int i = 0; i < a.GetLength(0); i++)
+                {
+                    for (int j = 0; j < b.GetLength(1); j++)
+                    {
+                        output[i, j] = a[i, j] / b[i, j];
+                    }
+                }
+            }
+            return output;
+        }
+
+        public double[,] SeqMultiply(double[,] a, double[,] b)
+        {
+            double[,] output = new double[a.GetLength(0), a.GetLength(1)];
+            if (a.GetLength(1) == b.GetLength(1) && a.GetLength(0) == b.GetLength(0))
+            {
+                for (int i = 0; i < a.GetLength(0); i++)
+                {
+                    for (int j = 0; j < b.GetLength(1); j++)
+                    {
+                        output[i, j] = a[i, j] * b[i, j];
+                    }
+                }
+            }
+            return output;
+        }
+
+        public Tuple<int[,], int[,]> Factorize(double[,] v, int pc = 10, int iter = 50)
+        {
+            int ic = v.GetLength(0);
+            int fc = v.GetLength(1);
             Random random = new Random();
 
-            int[,] w = new int[ic, pc];
-            int[,] h = new int[pc, fc];
+            double[,] w = new double[ic, pc];
+            double[,] h = new double[pc, fc];
 
-            int[,] wh;
+            double[,] wh;
 
             for (int i = 0; i < ic; i++)
             {
                 for (int j = 0; j < pc; j++)
                 {
-                    w[i, j] = random.Next();
+                    w[i, j] = random.NextDouble();
                 }
             }
 
@@ -182,35 +284,78 @@ namespace TextAnalyzer
             {
                 for (int j = 0; j < fc; j++)
                 {
-                    h[i, j] = random.Next();
+                    h[i, j] = random.NextDouble();
                 }
             }
 
-            wh = new int[w.GetLength(0), h.GetLength(1)];
-            if (w.GetLength(1) == h.GetLength(0))
-            {
-                for (int i = 0; i < w.GetLength(0); i++)
-                {
-                    for (int j = 0; j < h.GetLength(1); j++)
-                    {
-                        wh[i, j] = 0;
-                        for (int k = 0; k < w.GetLength(1); k++) // OR k<b.GetLength(0)
-                            wh[i, j] = wh[i, j] + w[i, k] * h[k, j];
-                    }
-                }
-            }
+            wh = Multiply(w, h);
 
             for (int i = 0; i < iter; i++)
             {
-                var cost = MatrixCost(a, wh);
+                var cost = MatrixCost(v, wh);
                 if (cost == 0) break;
 
+                double[,] hn = Multiply(Transpose(w), v);
+                double[,] hd = Multiply(Multiply(Transpose(w), w), h);
 
+                h = SeqDivision(SeqMultiply(h, hn), hd);
+
+                double[,] wn = Multiply(v, Transpose(h));
+                double[,] wd = Multiply(Multiply(w, h), Transpose(h));
+
+                w = SeqDivision(SeqMultiply(w, wn), wd);
+            }
+
+            int[,] outputH = new int[h.GetLength(0), h.GetLength(1)];
+            int[,] outputW = new int[w.GetLength(0), w.GetLength(1)];
+
+            for (int i = 0; i < outputH.GetLength(0); i++)
+            {
+                for (int j = 0; j < outputH.GetLength(1); j++)
+                {
+                    outputH[i, j] = (int)Math.Round(h[i, j]);
+                }
+            }
+
+            for (int i = 0; i < outputW.GetLength(0); i++)
+            {
+                for (int j = 0; j < outputW.GetLength(1); j++)
+                {
+                    outputW[i, j] = (int)Math.Round(w[i, j]);
+                }
+            }
+
+            return new Tuple<int[,], int[,]>(outputW, outputH);
+        }
+    }
+
+    public class ShowingFeature
+    {
+        double[,] w, h;
+        List<string> articleTitle, wordVector;
+        Dictionary<string, int> slist = new Dictionary<string, int>();
+
+        public ShowingFeature(double[,] w, double[,] h, List<string> articleTitle, List<string> wordVector)
+        {
+            this.w = w;
+            this.h = h;
+            this.articleTitle = articleTitle;
+            this.wordVector = wordVector;
+        }
+
+        public void Init()
+        {
+            for (int i = 0, pc = h.GetLength(0); i < pc; i++)
+            {
+                for (int j = 0, wc = h.GetLength(1); j < wc; j++)
+                {
+
+                }
             }
         }
     }
 
-    class Utils
+    public class Utils
     {
         public static string ReadAllSettings()
         {
