@@ -19,7 +19,8 @@ namespace TextAnalyzer
             var textProcessingResult = tProcessor.Init();
             Matrix matrixCalculator = new Matrix();
             var factorizeResult = matrixCalculator.Factorize(textProcessingResult.Item2);
-
+            ShowingFeature sf = new ShowingFeature(factorizeResult.Item1, factorizeResult.Item2, textProcessingResult.Item3, textProcessingResult.Item1);
+            sf.Init();
 
             for (int i = 0; i < 10; i++)
             {
@@ -261,7 +262,7 @@ namespace TextAnalyzer
             return output;
         }
 
-        public Tuple<int[,], int[,]> Factorize(double[,] v, int pc = 10, int iter = 50)
+        public Tuple<double[,], double[,]> Factorize(double[,] v, int pc = 10, int iter = 50)
         {
             int ic = v.GetLength(0);
             int fc = v.GetLength(1);
@@ -306,34 +307,48 @@ namespace TextAnalyzer
                 w = SeqDivision(SeqMultiply(w, wn), wd);
             }
 
-            int[,] outputH = new int[h.GetLength(0), h.GetLength(1)];
-            int[,] outputW = new int[w.GetLength(0), w.GetLength(1)];
+            //int[,] outputH = new int[h.GetLength(0), h.GetLength(1)];
+            //int[,] outputW = new int[w.GetLength(0), w.GetLength(1)];
 
-            for (int i = 0; i < outputH.GetLength(0); i++)
-            {
-                for (int j = 0; j < outputH.GetLength(1); j++)
-                {
-                    outputH[i, j] = (int)Math.Round(h[i, j]);
-                }
-            }
+            //for (int i = 0; i < outputH.GetLength(0); i++)
+            //{
+            //    for (int j = 0; j < outputH.GetLength(1); j++)
+            //    {
+            //        outputH[i, j] = (int)Math.Round(h[i, j]);
+            //    }
+            //}
 
-            for (int i = 0; i < outputW.GetLength(0); i++)
-            {
-                for (int j = 0; j < outputW.GetLength(1); j++)
-                {
-                    outputW[i, j] = (int)Math.Round(w[i, j]);
-                }
-            }
+            //for (int i = 0; i < outputW.GetLength(0); i++)
+            //{
+            //    for (int j = 0; j < outputW.GetLength(1); j++)
+            //    {
+            //        outputW[i, j] = (int)Math.Round(w[i, j]);
+            //    }
+            //}
 
-            return new Tuple<int[,], int[,]>(outputW, outputH);
+            return new Tuple<double[,], double[,]>(w, h);
         }
+    }
+
+    public class TopPatterns
+    {
+        public double w { get; set; }
+        public int i { get; set; }
+        public string title { get; set; }
+    }
+
+    public class WordList
+    {
+        public string[] word { get; set; }
+        public double[] coefficient { get; set; }
     }
 
     public class ShowingFeature
     {
         double[,] w, h;
-        List<string> articleTitle, wordVector;
-        Dictionary<string, int> slist = new Dictionary<string, int>();
+        List<string> articleTitle, wordVector, patternNames = new List<string>();
+        List<List<TopPatterns>> topPatterns = new List<List<TopPatterns>>();
+        Dictionary<string, double> slist, top;
 
         public ShowingFeature(double[,] w, double[,] h, List<string> articleTitle, List<string> wordVector)
         {
@@ -345,13 +360,48 @@ namespace TextAnalyzer
 
         public void Init()
         {
+            StreamWriter sw = new StreamWriter("features.txt");
+
             for (int i = 0, pc = h.GetLength(0); i < pc; i++)
             {
+                //slist = new Dictionary<string, double>(); //не подходит, ключ не однозначен
+                WordList wl = new WordList();
+                wl.word = new string[h.GetLength(1)];
+                wl.coefficient = new double[h.GetLength(1)];
+
+                patternNames = new List<string>();
+                //topPatterns[i] = new List<TopPatterns>();
+
                 for (int j = 0, wc = h.GetLength(1); j < wc; j++)
                 {
-
+                    //slist.Add(wordVector[j], h[i, j]);
+                    wl.word[j] = wordVector[j];
+                    wl.coefficient[j] = h[i, j];
                 }
+
+                top = slist.OrderByDescending(pair => pair.Value).Take(5).ToDictionary(pair => pair.Key, pair => pair.Value);
+                foreach (string word in top.Keys)
+                {
+                    sw.WriteLine(word);
+                    patternNames.Add(word);
+                }
+
+                slist = new Dictionary<string, double>();
+                for (int j = 0; j < articleTitle.Count(); j++)
+                {
+                    slist.Add(articleTitle[j], w[j, i]);//ошибка
+                    //topPatterns[i,j].Add(new TopPatterns { w = w[j, i], i = i, title = articleTitle[j] });
+                }
+
+                top = slist.OrderByDescending(pair => pair.Value).Take(3).ToDictionary(pair => pair.Key, pair => pair.Value);
+                foreach (string word in top.Keys)
+                {
+                    sw.WriteLine(word);
+                }
+
+                sw.Write("\n");
             }
+            sw.Close();
         }
     }
 
