@@ -33,6 +33,45 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="EP.Analyzer.Biblio">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Analyzer.Biblio.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Analyzer.Business">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Analyzer.Business.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Analyzer.Date">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Analyzer.Date.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Analyzer.Decree">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Analyzer.Decree.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Analyzer.Location">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Analyzer.Location.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Analyzer.Misc">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Analyzer.Misc.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Analyzer.Organization">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Analyzer.Organization.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Analyzer.Person">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Analyzer.Person.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Analyzer.Semantic">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Analyzer.Semantic.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Analyzer.Technical">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Analyzer.Technical.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Core">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Explanatory">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Explanatory.dll</HintPath>
+    </Reference>
+    <Reference Include="EP.Morphology">
+      <HintPath>..\..\..\..\..\Documents\Visual Studio 2017\Projects\EP.Sdk\EP.Morphology.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.ServiceModel" />

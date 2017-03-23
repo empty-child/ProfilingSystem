@@ -6,6 +6,8 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
 using System.ServiceModel.Syndication;
+using EP;
+using EP.Semantix;
 
 namespace TextAnalyzer
 {
@@ -69,6 +71,8 @@ namespace TextAnalyzer
         double[,] wordMatrix;
         int c = 0;
 
+        Processor processor = new Processor();
+
         List<SyndicationItem> rssItem;
 
         public TextProcessor(List<SyndicationItem> rssItem)
@@ -99,25 +103,33 @@ namespace TextAnalyzer
             string[] words = body.Split(new[] { ' ', ',', ':', '?', '!', '.', '"', '-', '—' }, StringSplitOptions.RemoveEmptyEntries);
             articleWords.Add(new Dictionary<string, int>());
             articleTitle.Add(title);
+
             foreach (string word in words)
             {
-                string lowerWord = word.ToLower();
-                if (allWords.ContainsKey(lowerWord))
+                AnalysisResult ar = processor.Process(new SourceOfAnalysis(word));
+                Token t = ar.FirstToken; 
+                if (!(t is TextToken)) continue;
+                if (t.Morph.Class.IsConjunction || t.Morph.Class.IsMisc || 
+                    t.Morph.Class.IsUndefined || t.Morph.Class.IsPersonalPronoun || 
+                    t.Morph.Class.IsPreposition || t.Morph.Class.IsPronoun) continue;
+                string norm = t.GetNormalCaseText(null, true);
+                //string norm = word.ToLower();
+                if (allWords.ContainsKey(norm))
                 {
-                    allWords[lowerWord] += 1;
+                    allWords[norm] += 1;
                 }
                 else
                 {
-                    allWords.Add(lowerWord, 1);
+                    allWords.Add(norm, 1);
                 }
 
-                if (articleWords[c].ContainsKey(lowerWord))
+                if (articleWords[c].ContainsKey(norm))
                 {
-                    articleWords[c][lowerWord] += 1;
+                    articleWords[c][norm] += 1;
                 }
                 else
                 {
-                    articleWords[c].Add(lowerWord, 1);
+                    articleWords[c].Add(norm, 1);
                 }
             }
             c++;
