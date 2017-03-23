@@ -337,12 +337,6 @@ namespace TextAnalyzer
         public string title { get; set; }
     }
 
-    public class WordList
-    {
-        public string[] word { get; set; }
-        public double[] coefficient { get; set; }
-    }
-
     public class ShowingFeature
     {
         double[,] w, h;
@@ -364,19 +358,13 @@ namespace TextAnalyzer
 
             for (int i = 0, pc = h.GetLength(0); i < pc; i++)
             {
-                //slist = new Dictionary<string, double>(); //не подходит, ключ не однозначен
-                WordList wl = new WordList();
-                wl.word = new string[h.GetLength(1)];
-                wl.coefficient = new double[h.GetLength(1)];
-
+                slist = new Dictionary<string, double>();
                 patternNames = new List<string>();
-                //topPatterns[i] = new List<TopPatterns>();
+                topPatterns.Add(new List<TopPatterns>());
 
                 for (int j = 0, wc = h.GetLength(1); j < wc; j++)
                 {
-                    //slist.Add(wordVector[j], h[i, j]);
-                    wl.word[j] = wordVector[j];
-                    wl.coefficient[j] = h[i, j];
+                    slist.Add(wordVector[j], h[i, j]);
                 }
 
                 top = slist.OrderByDescending(pair => pair.Value).Take(5).ToDictionary(pair => pair.Key, pair => pair.Value);
@@ -389,8 +377,13 @@ namespace TextAnalyzer
                 slist = new Dictionary<string, double>();
                 for (int j = 0; j < articleTitle.Count(); j++)
                 {
-                    slist.Add(articleTitle[j], w[j, i]);//ошибка
-                    //topPatterns[i,j].Add(new TopPatterns { w = w[j, i], i = i, title = articleTitle[j] });
+                    string temp = articleTitle[j];
+                    while (slist.ContainsKey(temp))
+                    {
+                        temp += "(1)";
+                    }
+                    slist.Add(temp, w[j, i]);
+                    topPatterns[i].Add(new TopPatterns { w = w[j, i], i = i, title = articleTitle[j] });
                 }
 
                 top = slist.OrderByDescending(pair => pair.Value).Take(3).ToDictionary(pair => pair.Key, pair => pair.Value);
