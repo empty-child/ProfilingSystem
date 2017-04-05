@@ -240,3 +240,8 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+/Core/Core/Properties/Settings.settings
+/Core/Core/Properties/Settings.Designer.cs
+/SocialNetworksLibrary/VK/Properties/Settings.settings
+/SocialNetworksLibrary/VK/Properties/Settings.Designer.cs
+/SocialNetworksLibrary/VK/app.config
