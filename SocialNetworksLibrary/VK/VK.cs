@@ -1,5 +1,5 @@
 ﻿using System;
-using Core;
+using TestGUI;
 
 using VkProperties = VK.Properties.Settings;
 
@@ -61,6 +61,8 @@ namespace VK
             if (token != "" || token != null)
             {
                 AccessToken = token;
+                VkProperties.Default.AccessToken = token;
+                VkProperties.Default.Save();
             }
         }
 
