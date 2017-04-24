@@ -49,15 +49,18 @@ namespace TestGUI
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            var result = Methods.UsersGet(new string[] { "210700286" }, new string[] { "city", "verified" });
+            var result = Methods.UsersGet(new string[] { "***" }, new string[] { "photo_id" });
+            string id = result[0]["id"];
+            result = Methods.FriendsGet(id, "hints", "", new string[] { "first_name", "last_name", "home_town", "schools" });
             textBlock1.Text = "";
-            foreach (List<string> items in result)
+            List<string> targetIDs = new List<string>();
+            foreach (Dictionary<string,string> items in result)
             {
-                foreach (string item in items)
-                {
-                    textBlock1.Text += string.Concat(item, "\n");
-                }
+                targetIDs.Add(items["id"]);
             }
+            var a = targetIDs.ToArray();
+            result = Methods.FriendsGetMutual(id, a);
+            //textBlock1.Text += string.Concat(item, "\n");
         }
     }
 }

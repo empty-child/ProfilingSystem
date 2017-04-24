@@ -10,7 +10,36 @@ namespace TestGUI
 {
     class Core
     {
+
     }
+
+    //public class PGPIN
+    //{
+    //    string _ni;
+    //    int _maxFacts;
+    //    int _maxDepth;
+
+    //    public PGPIN()
+    //    {
+
+    //    }
+
+    //    public void Init()
+    //    {
+    //        Queue<string> IdQuene = new Queue<string>();
+    //        Dictionary<string, double> Values = new Dictionary<string, double>();
+    //        List<string> Seen = new List<string>();
+
+    //        IdQuene.Enqueue(_ni);
+    //        while (IdQuene.Count > 0)
+    //        {
+    //            string nj = IdQuene.Dequeue();
+    //            double FValue; //=
+    //            Values.Add(nj, FValue);
+
+    //        }
+    //    }
+    //}
 
     public static class Utils
     {

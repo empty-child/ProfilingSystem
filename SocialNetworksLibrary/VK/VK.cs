@@ -119,7 +119,7 @@ namespace VK
 
         public string ApiRequest()
         {
-            string Response = Utils.Request(string.Format("{0}{1}?{2}&access_token={3}", _serverUrl, _methodName, _parameters, _accessToken), "POST");
+            string Response = Utils.Request(string.Format("{0}{1}?{2}&v=5.63&access_token={3}", _serverUrl, _methodName, _parameters, _accessToken), "POST");
             _outputData = Response;
             return Response;
         }
