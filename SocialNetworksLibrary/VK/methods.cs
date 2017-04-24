@@ -14,7 +14,7 @@ namespace VK
         #region Methods for PGPI-N
 
         //Возвращает расширенную информацию о пользователях. 
-        public static List<Dictionary<string, string>> UsersGet(string[] userIDs, string[] fields, string nameCase = "nom")
+        public static List<Dictionary<string, object>> UsersGet(string[] userIDs, string[] fields, string nameCase = "nom")
         {
             string Parameters = string.Format("user_ids={0}&fields={1}&name_case={2}",
                 string.Join(",", userIDs), string.Join(",", fields), nameCase);
@@ -22,7 +22,7 @@ namespace VK
         }
 
         //Возвращает список идентификаторов пользователей и публичных страниц, которые входят в список подписок пользователя. 
-        public static List<Dictionary<string, string>> UsersGetSubscriptions(string userID, string[] fields)
+        public static List<Dictionary<string, object>> UsersGetSubscriptions(string userID, string[] fields)
         {
             string Parameters = string.Format("user_id={0}&fields={1}",
                 userID, string.Join(",", fields));
@@ -30,7 +30,7 @@ namespace VK
         }
 
         ////Возвращает список идентификаторов друзей пользователя или расширенную информацию о друзьях пользователя 
-        public static List<Dictionary<string, string>> FriendsGet(string userID, string order, string count, string[] fields, string nameCase = "nom")
+        public static List<Dictionary<string, object>> FriendsGet(string userID, string order, string count, string[] fields, string nameCase = "nom")
         {
             string Parameters = string.Format("user_id={0}&order={1}&fields={3}",
                 userID, order, count, string.Join(",", fields), nameCase);
@@ -38,7 +38,7 @@ namespace VK
         }
 
         //Возвращает список идентификаторов общих друзей между парой пользователей
-        public static List<Dictionary<string, string>> FriendsGetMutual(string sourceID, string[] targetIDs)
+        public static List<Dictionary<string, object>> FriendsGetMutual(string sourceID, string[] targetIDs)
         {
             string Parameters = string.Format("source_uid={0}&target_uid={1}",
                 sourceID, string.Join(",", targetIDs));
@@ -47,7 +47,7 @@ namespace VK
 
         #endregion
 
-        public static List<Dictionary<string, string>> JsonParsing(string method, string parameters)
+        public static List<Dictionary<string, object>> JsonParsing(string method, string parameters)
         {
             InitRequest usersGet = new InitRequest();
             usersGet.MethodName = method;
@@ -67,7 +67,7 @@ namespace VK
             {
                 return null;
             }
-            List<Dictionary<string, string>> JsonListBox = new List<Dictionary<string, string>>();
+            List<Dictionary<string, object>> JsonListBox = new List<Dictionary<string, object>>();
             int count;
             try
             {
@@ -82,45 +82,30 @@ namespace VK
             for (int i = 0; i < count; i++)
             {
                 var item = response[i];
-                var temp = item.ToObject<Dictionary<string, string>>();
-                //Dictionary<string, string> temp = new Dictionary<string, string>();
-                //foreach (var data in item)
-                //{//TODO: необходима реализация для вложенных списков (типа schools, career и тд)
-                //    string[] pair = data.ToString().Split(new char[] { ':', '"', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                //    if (data.First.HasValues)
-                //    {
-                //        //foreach(var innerData in data)
-                //        for (int k = 0; k < data.First().Count() - 1; k++)
-                //        {
-                //            int ind = 0;
-                //            foreach (var innerData in data.ElementAt<JToken>(k))
-                //            {
-                //                var dict = innerData.ToObject<Dictionary<string, string>>();
-                //                string[] innerPair = innerData.ToString().Split(new char[] { ':', '"', ' ', ',', '{', '}', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                //                try
-                //                {
-                //                    temp.Add(pair[0] + ind + "." + innerPair[0], innerPair[1]);
-                //                }
-                //                catch
-                //                {
-                //                    temp.Add(pair[0] + ind + "." + innerPair[0], null);
-                //                }
-                //                ind++;
-                //            }
-                //        }
-                //    }
-                //    else
-                //    {
-                //        try
-                //        {
-                //            temp.Add(pair[0], pair[1]);
-                //        }
-                //        catch
-                //        {
-                //            temp.Add(pair[0], null);
-                //        }
-                //    }
-                //}
+                var temp = item.ToObject<Dictionary<string, object>>();
+                List<string> keys = new List<string>(temp.Keys);
+                foreach (var key in keys)
+                {
+                    if (temp[key] is JToken x)
+                    {
+                        List<Dictionary<string, object>> innerList = new List<Dictionary<string, object>>();
+                        foreach(var elem in x)
+                        {
+                            Dictionary<string, object> dict;
+                            try
+                            {
+                                dict = elem.ToObject<Dictionary<string, object>>();
+                            }
+                            catch
+                            {
+                                dict = new Dictionary<string, object> { { "value", elem } };
+                            }
+                            innerList.Add(dict);
+                        }
+                        temp.Remove(key);
+                        temp.Add(key, innerList);
+                    }
+                }
                 JsonListBox.Add(temp);
             }
             return JsonListBox;
