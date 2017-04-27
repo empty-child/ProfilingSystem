@@ -25,6 +25,8 @@ namespace TestGUI
         {
             InitializeComponent();
             Init();
+            PGPIN a = new PGPIN("afanasov_p");
+            a.Init();
         }
 
         public string Cache { get; set; }
@@ -49,17 +51,10 @@ namespace TestGUI
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            var result = Methods.UsersGet(new string[] { "***" }, new string[] { "photo_id" });
-            string id = result[0]["id"].ToString();
-            result = Methods.FriendsGet(id, "hints", "", new string[] { "first_name", "last_name", "home_town", "schools" });
+            PGPIN a = new PGPIN("afanasov_p");
+            a.Init();
             textBlock1.Text = "";
-            List<string> targetIDs = new List<string>();
-            foreach (Dictionary<string, object> items in result)
-            {
-                targetIDs.Add(items["id"].ToString());
-            }
-            var a = targetIDs.ToArray();
-            result = Methods.FriendsGetMutual(id, a);
+            
             //textBlock1.Text += string.Concat(item, "\n");
         }
     }

@@ -40,12 +40,27 @@ namespace VK
         //Возвращает список идентификаторов общих друзей между парой пользователей
         public static List<Dictionary<string, object>> FriendsGetMutual(string sourceID, string[] targetIDs)
         {
-            string Parameters = string.Format("source_uid={0}&target_uid={1}",
+            string Parameters = string.Format("source_uid={0}&target_uids={1}",
                 sourceID, string.Join(",", targetIDs));
             return JsonParsing("friends.getMutual", Parameters);
         }
 
         #endregion
+
+        public static List<Dictionary<string, object>> Execute(List<Dictionary<string, string>> data)
+        {
+            string code = null;
+            foreach (var query in data)
+            {
+                if (query["parameters"] != null)
+                {
+                    code += "API." + query["method"] + "({" + query["parameters"] + "}),";
+                }
+            }
+            string Parameters = string.Format("code=return [{0}];",
+                code);
+            return JsonParsing("execute", Parameters);
+        }
 
         public static List<Dictionary<string, object>> JsonParsing(string method, string parameters)
         {
@@ -60,52 +75,55 @@ namespace VK
             }
             catch
             {
-                return null;
+                throw new VKException();
             }
             var response = obj["response"];
             if (response == null)
             {
                 return null;
             }
-            List<Dictionary<string, object>> JsonListBox = new List<Dictionary<string, object>>();
-            int count;
             try
             {
-                count = (int)response["count"];
                 response = response["items"];
             }
-            catch
-            {
-                count = 1;
-            }
+            catch { }
+            List<Dictionary<string, object>> JsonListBox = new List<Dictionary<string, object>>();
 
-            for (int i = 0; i < count; i++)
+            foreach (var item in response)
             {
-                var item = response[i];
-                var temp = item.ToObject<Dictionary<string, object>>();
-                List<string> keys = new List<string>(temp.Keys);
-                foreach (var key in keys)
+                Dictionary<string, object> temp;
+                try
                 {
-                    if (temp[key] is JToken x)
+                    temp = item.ToObject<Dictionary<string, object>>();
+                    List<string> keys = new List<string>(temp.Keys);
+                    foreach (var key in keys)
                     {
-                        List<Dictionary<string, object>> innerList = new List<Dictionary<string, object>>();
-                        foreach(var elem in x)
+                        if (temp[key] is JToken x)
                         {
-                            Dictionary<string, object> dict;
-                            try
+                            List<Dictionary<string, object>> innerList = new List<Dictionary<string, object>>();
+                            foreach (var elem in x)
                             {
-                                dict = elem.ToObject<Dictionary<string, object>>();
+                                Dictionary<string, object> dict;
+                                try
+                                {
+                                    dict = elem.ToObject<Dictionary<string, object>>();
+                                }
+                                catch
+                                {
+                                    dict = new Dictionary<string, object> { { "id", elem } };
+                                }
+                                innerList.Add(dict);
                             }
-                            catch
-                            {
-                                dict = new Dictionary<string, object> { { "value", elem } };
-                            }
-                            innerList.Add(dict);
+                            temp.Remove(key);
+                            temp.Add(key, innerList);
                         }
-                        temp.Remove(key);
-                        temp.Add(key, innerList);
                     }
                 }
+                catch
+                {
+                    temp = new Dictionary<string, object> { { "id", item.ToString() } };
+                }
+
                 JsonListBox.Add(temp);
             }
             return JsonListBox;
