@@ -13,6 +13,7 @@ namespace TestGUI
         // Private member-variables
         private T data;
         private NodeList<T> neighbors = null;
+        private Dictionary<T, object> additionalData;
 
         public Node() { }
         public Node(T data) : this(data, null) { }
@@ -20,6 +21,14 @@ namespace TestGUI
         {
             this.data = data;
             this.neighbors = neighbors;
+        }
+
+
+        public Node(T data, NodeList<T> neighbors, Dictionary<T, object> additionalData)
+        {
+            this.data = data;
+            this.neighbors = neighbors;
+            this.additionalData = additionalData;
         }
 
         public T Value
@@ -34,7 +43,7 @@ namespace TestGUI
             }
         }
 
-        protected NodeList<T> Neighbors
+        public NodeList<T> Neighbors
         {
             get
             {
@@ -43,6 +52,18 @@ namespace TestGUI
             set
             {
                 neighbors = value;
+            }
+        }
+
+        public Dictionary<T, object> ParametersData
+        {
+            get
+            {
+                return additionalData;
+            }
+            set
+            {
+                additionalData = value;
             }
         }
     }
@@ -77,6 +98,7 @@ namespace TestGUI
         public GraphNode() : base() { }
         public GraphNode(T value) : base(value) { }
         public GraphNode(T value, NodeList<T> neighbors) : base(value, neighbors) { }
+        public GraphNode(T value, NodeList<T> neighbors, Dictionary<T, object> additionalData) : base(value, neighbors, additionalData) { }
 
         new public NodeList<T> Neighbors
         {
@@ -126,6 +148,12 @@ namespace TestGUI
             nodeSet.Add(new GraphNode<T>(value));
         }
 
+        public void AddNode(T value, Dictionary<T, object> parameters)
+        {
+            // adds a node with additional data to the graph
+            nodeSet.Add(new GraphNode<T>(value, null, parameters));
+        }
+
         public void AddDirectedEdge(T inputFrom, T inputTo, int cost)
         {
             GraphNode<T> from = (GraphNode<T>)nodeSet.FindByValue(inputFrom);
@@ -143,6 +171,60 @@ namespace TestGUI
 
             to.Neighbors.Add(from);
             to.Costs.Add(cost);
+        }
+
+        public Dictionary<Node<T>, int> Distance(T from)
+        {
+            Node<T> inputFrom = new Node<T>();
+            GraphNode<T> temp = (GraphNode<T>)nodeSet.FindByValue(from);
+            if (temp != null) { inputFrom = (Node<T>)temp; };
+            //GraphNode<T> to = (GraphNode<T>)nodeSet.FindByValue(inputTo);
+            //if (from == null || to == null) return -1;
+            //if (from.Neighbors.Contains(to))
+            //{
+            //    return 1;
+            //}
+            //else
+            //{
+            //Queue<Node<string>> NodeQuene = new Queue<Node<string>>();
+            //NodeQuene.Enqueue(from);
+
+
+            bool flag = false;
+            int count = 0;
+            Node<T> currentNode = inputFrom;
+            List<Node<T>> inputList = new List<Node<T>>();
+            List<Node<T>> outputList = new List<Node<T>>();
+            inputList.Add(inputFrom);
+            Dictionary<Node<T>, int> commonCost = new Dictionary<Node<T>, int>();
+            //commonCost.Add(currentNode, 0);
+
+            while (flag == false)
+            {
+                foreach (var node in inputList)
+                {
+                    if(!commonCost.ContainsKey(node)) commonCost.Add(node, count);
+                    foreach (var innode in node.Neighbors)
+                    {
+                        if (!commonCost.ContainsKey(innode)) outputList.Add(innode);
+                    }
+
+                }
+                if (outputList == null || outputList.Count == 0)
+                {
+                    flag = true;
+                }
+                else
+                {
+                    inputList.Clear();
+                    inputList = outputList.ToList();
+                    outputList.Clear();
+                    count++;
+                }
+            }
+
+            //}
+            return commonCost;
         }
 
         public bool Contains(T value)
