@@ -1,10 +1,7 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace TestGUI
 {
@@ -14,6 +11,7 @@ namespace TestGUI
         private T data;
         private NodeList<T> neighbors = null;
         private Dictionary<T, object> additionalData;
+        private List<T> groupsList;
 
         public Node() { }
         public Node(T data) : this(data, null) { }
@@ -65,6 +63,12 @@ namespace TestGUI
             {
                 additionalData = value;
             }
+        }
+
+        public List<T> GroupsList
+        {
+            get { return groupsList; }
+            set { groupsList = value; }
         }
     }
 
@@ -126,6 +130,9 @@ namespace TestGUI
     public class Graph<T> : IEnumerable<T>
     {
         private NodeList<T> nodeSet;
+        private Dictionary<T, List<T>> groupsMembership = new Dictionary<T, List<T>>(); //{группа1:юзер1,юзер2...}
+        private Dictionary<T, List<T>> publications = new Dictionary<T, List<T>>(); //{группа1:пост1}
+        private Dictionary<T, List<T>> likesAndViews = new Dictionary<T, List<T>>();//{пост1:юзер1,юзер2...}
 
         public Graph() : this(null) { }
         public Graph(NodeList<T> nodeSet)
@@ -166,6 +173,8 @@ namespace TestGUI
         {
             GraphNode<T> from = (GraphNode<T>)nodeSet.FindByValue(inputFrom);
             GraphNode<T> to = (GraphNode<T>)nodeSet.FindByValue(inputTo);
+            if (to.Neighbors.Contains(from)) return; //чтобы не дублировать связи
+
             from.Neighbors.Add(to);
             from.Costs.Add(cost);
 
@@ -178,17 +187,6 @@ namespace TestGUI
             Node<T> inputFrom = new Node<T>();
             GraphNode<T> temp = (GraphNode<T>)nodeSet.FindByValue(from);
             if (temp != null) { inputFrom = (Node<T>)temp; };
-            //GraphNode<T> to = (GraphNode<T>)nodeSet.FindByValue(inputTo);
-            //if (from == null || to == null) return -1;
-            //if (from.Neighbors.Contains(to))
-            //{
-            //    return 1;
-            //}
-            //else
-            //{
-            //Queue<Node<string>> NodeQuene = new Queue<Node<string>>();
-            //NodeQuene.Enqueue(from);
-
 
             bool flag = false;
             int count = 0;
@@ -197,7 +195,6 @@ namespace TestGUI
             List<Node<T>> outputList = new List<Node<T>>();
             inputList.Add(inputFrom);
             Dictionary<Node<T>, int> commonCost = new Dictionary<Node<T>, int>();
-            //commonCost.Add(currentNode, 0);
 
             while (flag == false)
             {
@@ -223,7 +220,6 @@ namespace TestGUI
                 }
             }
 
-            //}
             return commonCost;
         }
 
@@ -266,6 +262,24 @@ namespace TestGUI
         IEnumerator IEnumerable.GetEnumerator()
         {
             return Nodes.GetEnumerator();
+        }
+
+        public Dictionary<T, List<T>> GroupsMembership
+        {
+            get { return groupsMembership; }
+            set { groupsMembership = value; }
+        }
+
+        public Dictionary<T, List<T>> LikesAndViewes
+        {
+            get { return likesAndViews; }
+            set { likesAndViews = value; }
+        }
+
+        public Dictionary<T, List<T>> Publications
+        {
+            get { return publications; }
+            set { publications = value; }
         }
 
         public NodeList<T> Nodes

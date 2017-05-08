@@ -12,7 +12,9 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
-using VK;
+using SocialNetworksLibrary;
+using Microsoft.Expression.Encoder.Devices;
+using WebcamControl;
 
 namespace TestGUI
 {
@@ -24,9 +26,33 @@ namespace TestGUI
         public MainWindow()
         {
             InitializeComponent();
-            Init();
-            PGPIN a = new PGPIN("afanasov_p");
+            //Init();
+            PGPI a = new PGPI("afanasov_p");
             a.Init();
+
+            //Binding binding_1 = new Binding("SelectedValue");
+            //binding_1.Source = VideoDevicesComboBox;
+            //WebcamCtrl.SetBinding(Webcam.VideoDeviceProperty, binding_1);
+
+            //WebcamCtrl.FrameRate = 30;
+            //WebcamCtrl.FrameSize = new System.Drawing.Size(640, 480);
+            //var vidDevices = EncoderDevices.FindDevices(EncoderDeviceType.Video);
+            //VideoDevicesComboBox.ItemsSource = vidDevices;
+            //VideoDevicesComboBox.SelectedIndex = 0;
+
+        }
+
+        private void StartCaptureButton_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // Display webcam video
+                WebcamCtrl.StartPreview();
+            }
+            catch (Microsoft.Expression.Encoder.SystemErrorException ex)
+            {
+                MessageBox.Show("Device is in use by another application");
+            }
         }
 
         public string Cache { get; set; }
@@ -51,9 +77,9 @@ namespace TestGUI
 
         private void Button_Click(object sender, RoutedEventArgs e)
         {
-            PGPIN a = new PGPIN("afanasov_p");
+            PGPI a = new PGPI("afanasov_p");
             a.Init();
-            textBlock1.Text = "";
+            //textBlock1.Text = "";
             
             //textBlock1.Text += string.Concat(item, "\n");
         }

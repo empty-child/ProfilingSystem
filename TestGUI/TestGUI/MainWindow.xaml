@@ -4,11 +4,44 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TestGUI"
+        xmlns:cam="clr-namespace:WebcamControl;assembly=WebcamControl"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="525">
+        Title="MainWindow" Height="350" Width="520">
+    <Window.Resources>
+        <DataTemplate x:Key="DevicesListTemplate">
+            <TextBlock Text="{Binding Name}"/>
+        </DataTemplate>
+    </Window.Resources>
+    
     <Grid>
-        <Button Content="Button" HorizontalAlignment="Left" Margin="144,96,0,0" VerticalAlignment="Top" Width="75" Click="Button_Click"/>
-        <TextBlock x:Name="textBlock1" HorizontalAlignment="Left" Margin="290,27,0,0" TextWrapping="Wrap" Text="TextBlock" VerticalAlignment="Top" Height="246" Width="191"/>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition/>
+            <ColumnDefinition/>
+            <ColumnDefinition Width="0.3*"/>
+        </Grid.ColumnDefinitions>
+        <Label Content="Test" Grid.Column="1" HorizontalAlignment="Left" Margin="95,10,0,0" VerticalAlignment="Top"/>
+
+
+        <Grid Grid.Column="0">
+            <Grid.RowDefinitions>
+                <RowDefinition/>
+                <RowDefinition Height="0.3*"/>
+            </Grid.RowDefinitions>
+
+            <cam:Webcam Grid.Row="0" Name="WebcamCtrl" Margin="10,50,10,10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" BorderBrush="Black"/>
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Height="22" Margin="0,-25,0,0">
+                <TextBlock Height="22" Width="78" HorizontalAlignment="Left" VerticalAlignment="Top"
+                           Text="Камеры" TextAlignment="Left" FlowDirection="LeftToRight" />
+                <ComboBox Height="22" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top"
+                          x:Name="VideoDevicesComboBox" ItemTemplate="{StaticResource DevicesListTemplate}"/>
+            </StackPanel>
+            <Button Grid.Row="1" Content="Начать захват" Height="24" 
+                    VerticalAlignment="Top" x:Name="StartCaptureButton" Click="StartCaptureButton_Click" Margin="54,43,54,0"/>
+            <TextBlock HorizontalAlignment="Center" Margin="79,10,78,0" TextWrapping="Wrap" Text="Видеопоток" VerticalAlignment="Top" Width="66"/>
+        </Grid>
 
     </Grid>
 </Window>
