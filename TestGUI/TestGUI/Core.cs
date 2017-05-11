@@ -20,12 +20,28 @@ namespace TestGUI
             _superUserName = superUserName;
         }
 
-        public void Init()
+        public Dictionary<string, double> Init()
         {
-            RequestPrimaryInfo(_superUserName, "universities");
-            RequestFriendConnections(2, "universities");
-            InitPGPIN();
+            RequestPrimaryInfo(_superUserName, "city,home_town,universities,schools,sex,country");
+            RequestFriendConnections(1, "city,home_town,universities,schools,sex,country");
+            var output = new Dictionary<string, double>();
+            var result = InitPGPIN();
+            foreach (var key in result.Keys)
+            {
+                double max = 0;
+                string outkey = "";
+                foreach (var innerkey in result[key].Keys)
+                {
+                    if (result[key][innerkey] > max)
+                    {
+                        outkey = innerkey;
+                        max = result[key][innerkey];
+                    }
+                }
+                output.Add(key + ": " + outkey, max);
+            }
             //InitPGPIG();
+            return output;
         }
 
         void RequestPrimaryInfo(string superUserName, string parameters = null)
@@ -89,7 +105,7 @@ namespace TestGUI
             }
         }
 
-        void InitPGPIN(int accessedFacts = 10)
+        Dictionary<string, Dictionary<string, double>> InitPGPIN(int accessedFacts = 10)
         {
             Queue<Node<string>> IdQuene = new Queue<Node<string>>();
             Dictionary<string, Dictionary<string, double>> Values = new Dictionary<string, Dictionary<string, double>>();
@@ -110,33 +126,84 @@ namespace TestGUI
                 var nj = IdQuene.Dequeue();
                 njParameters = nj.ParametersData;
                 int count = 0;
+                int niLength = 0;
                 foreach (var elem in niParameters.Keys)
                 {
                     try
                     {
-                        if (niParameters[elem] == njParameters[elem]) count++; //TODO: обработка вложенных словарей
+                        if (njParameters[elem] is List<object>)
+                        {
+                            foreach (Dictionary<string, object> dni in niParameters[elem])
+                            {
+                                foreach (Dictionary<string, object> dnj in njParameters[elem])
+                                {
+                                    foreach (string key in dni.Keys)
+                                    {
+                                        if (dni[key] == dnj[key]) count++;
+                                        niLength++;
+                                    }
+                                }
+                            }
+                        }
+                        else if (njParameters[elem] is Dictionary<string, object>)
+                        {
+                            foreach (string niKey in niParameters[elem].Keys)
+                            {
+                                if (njParameters[elem].ContainsKey(niKey))
+                                {
+                                    if(njParameters[elem][niKey]== niParameters[elem][niKey])
+                                    {
+                                        count++;
+                                        niLength++;
+                                    }
+                                }
+                            }
+                        }
+                        else if (niParameters[elem] == njParameters[elem])
+                        {
+                            count++;
+                            niLength++;
+                        }
                     }
                     catch { }
                 }
-                if (commonCost[nj] != 0) FValue = (count / niParameters.Count) / commonCost[nj];
+                if (commonCost[nj] != 0 && niLength != 0) FValue = (count / niLength) / commonCost[nj];
                 else FValue = 0;
                 foreach (var key in nj.ParametersData.Keys)
                 {
-                    if (nj.ParametersData[key] is List<Dictionary<string, object>>)
+                    if (nj.ParametersData[key] is List<object>)
                     {
-                        var w = nj.ParametersData[key];
-                        //foreach (var item in nj.ParametersData[key])
-                        //{
-                        //    string temp = "";
-                        //    if (Values.ContainsKey(temp))
-                        //    {
-                        //    }
-                        //}
+                        try
+                        {
+                            foreach (Dictionary<string, object> dnj in njParameters[key])
+                            {
+                                foreach (string elem in dnj.Keys)
+                                {
+                                    if (Values.ContainsKey(key + "." + elem))
+                                    {
+
+                                        if (Values[key + "." + elem].ContainsKey(dnj[elem].ToString()))
+                                        {
+                                            Values[key + "." + elem][dnj[elem].ToString()] += FValue;
+                                        }
+                                        else
+                                        {
+                                            Values[key + "." + elem].Add(dnj[elem].ToString(), FValue);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        Values.Add(key + "." + elem, new Dictionary<string, double> { { dnj[elem].ToString(), FValue } });
+                                    }
+                                }
+                            }
+                        }
+                        catch { }
                     }
-                    if (Values.ContainsKey(key))
+                    else if (Values.ContainsKey(key))
                     {
 
-                        if (Values[key].ContainsKey(nj.ParametersData[key].ToString())) //TODO: обработка вложенных словарей
+                        if (Values[key].ContainsKey(nj.ParametersData[key].ToString()))
                         {
 
                             Values[key][nj.ParametersData[key].ToString()] += FValue;
@@ -162,6 +229,7 @@ namespace TestGUI
                     }
                 }
             }
+            return Values;
         }
 
         void InitPGPIG()

@@ -3,26 +3,23 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:TestGUI"
-        xmlns:cam="clr-namespace:WebcamControl;assembly=WebcamControl"
         mc:Ignorable="d"
-        Title="MainWindow" Height="350" Width="520">
+        Title="MainWindow" Height="350" Width="520" MinWidth="520" MinHeight="350">
     <Window.Resources>
         <DataTemplate x:Key="DevicesListTemplate">
             <TextBlock Text="{Binding Name}"/>
         </DataTemplate>
     </Window.Resources>
-    
+
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition/>
         </Grid.RowDefinitions>
         <Grid.ColumnDefinitions>
-            <ColumnDefinition/>
+            <ColumnDefinition Width="1.5*"/>
             <ColumnDefinition/>
             <ColumnDefinition Width="0.3*"/>
         </Grid.ColumnDefinitions>
-        <Label Content="Test" Grid.Column="1" HorizontalAlignment="Left" Margin="95,10,0,0" VerticalAlignment="Top"/>
 
 
         <Grid Grid.Column="0">
@@ -31,17 +28,24 @@
                 <RowDefinition Height="0.3*"/>
             </Grid.RowDefinitions>
 
-            <cam:Webcam Grid.Row="0" Name="WebcamCtrl" Margin="10,50,10,10" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" BorderBrush="Black"/>
-            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Height="22" Margin="0,-25,0,0">
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Center" Height="22" Margin="0,-25,0,0" MinWidth="178" MinHeight="22">
                 <TextBlock Height="22" Width="78" HorizontalAlignment="Left" VerticalAlignment="Top"
                            Text="Камеры" TextAlignment="Left" FlowDirection="LeftToRight" />
                 <ComboBox Height="22" Width="100" HorizontalAlignment="Left" VerticalAlignment="Top"
-                          x:Name="VideoDevicesComboBox" ItemTemplate="{StaticResource DevicesListTemplate}"/>
+                          x:Name="VideoDevicesComboBox" ItemTemplate="{StaticResource DevicesListTemplate}" IsEditable="True"/>
             </StackPanel>
             <Button Grid.Row="1" Content="Начать захват" Height="24" 
-                    VerticalAlignment="Top" x:Name="StartCaptureButton" Click="StartCaptureButton_Click" Margin="54,43,54,0"/>
-            <TextBlock HorizontalAlignment="Center" Margin="79,10,78,0" TextWrapping="Wrap" Text="Видеопоток" VerticalAlignment="Top" Width="66"/>
+                    VerticalAlignment="Top" Margin="54,43,54,0" IsEnabled="False"/>
+            <TextBlock HorizontalAlignment="Center" Margin="79,14,78,0" TextWrapping="Wrap" Text="Видеопоток" VerticalAlignment="Top" Width="66" MinWidth="66" MinHeight="16"/>
+            <Image x:Name="image1" Margin="10,31,10,10" MinWidth="203" MinHeight="204"/>
         </Grid>
+        <TextBlock TextWrapping="Wrap" Text="///Release Build 1///GUI: Pre-Alpha, Base Algorithm: Beta, Additional Algorithm: RC///" VerticalAlignment="Top" Grid.ColumnSpan="3" TextAlignment="Center" Margin="0,0,0.391,0">
+            <TextBlock.Background>
+                <SolidColorBrush Color="#FF767676" Opacity="0.5"/>
+            </TextBlock.Background>
+        </TextBlock>
+        <TextBlock Grid.Column="1" Margin="47,14,35,0" TextWrapping="Wrap" Text="Выходные данные" VerticalAlignment="Top" MinWidth="102" MinHeight="16"/>
+        <TextBox x:Name="textbox1" Grid.Column="1" Margin="10,35,10,10" TextWrapping="Wrap" IsEnabled="False"/>
 
     </Grid>
 </Window>

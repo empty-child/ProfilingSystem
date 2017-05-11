@@ -11,10 +11,13 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
-using System.Windows.Shapes;
+using System.Drawing;
 using SocialNetworksLibrary;
 using Microsoft.Expression.Encoder.Devices;
-using WebcamControl;
+using Emgu.CV;
+using Emgu.CV.Structure;
+using Emgu.CV.WPF;
+using DirectShowLib;
 
 namespace TestGUI
 {
@@ -23,36 +26,72 @@ namespace TestGUI
     /// </summary>
     public partial class MainWindow : Window
     {
+        private Capture _capture = null;
+        private static readonly CascadeClassifier Classifier = new CascadeClassifier(@"haarcascade_frontalface_default.xml");
+        private int _frameCounter = 0;
+
         public MainWindow()
         {
             InitializeComponent();
-            //Init();
-            PGPI a = new PGPI("afanasov_p");
-            a.Init();
 
-            //Binding binding_1 = new Binding("SelectedValue");
-            //binding_1.Source = VideoDevicesComboBox;
-            //WebcamCtrl.SetBinding(Webcam.VideoDeviceProperty, binding_1);
-
-            //WebcamCtrl.FrameRate = 30;
-            //WebcamCtrl.FrameSize = new System.Drawing.Size(640, 480);
-            //var vidDevices = EncoderDevices.FindDevices(EncoderDeviceType.Video);
-            //VideoDevicesComboBox.ItemsSource = vidDevices;
-            //VideoDevicesComboBox.SelectedIndex = 0;
+            InitCapture();
+            
 
         }
 
-        private void StartCaptureButton_Click(object sender, RoutedEventArgs e)
+        void InitCapture()
         {
-            try
+            CvInvoke.UseOpenCL = false;
+
+            DsDevice[] _SystemCamereas = DsDevice.GetDevicesOfCat(FilterCategory.VideoInputDevice);
+            if (_SystemCamereas.Length == 0)
             {
-                // Display webcam video
-                WebcamCtrl.StartPreview();
+                MessageBox.Show("Camera not found");
+                return;
             }
-            catch (Microsoft.Expression.Encoder.SystemErrorException ex)
+            _capture = new Capture();
+            _capture.FlipHorizontal = true;
+            //_capture.SetCaptureProperty(Emgu.CV.CvEnum.CapProp.Fps, 25);
+
+            this.Dispatcher.Hooks.DispatcherInactive += Hooks_DispatcherInactive;
+
+            _capture.Start();
+            InitCortex();
+
+        }
+
+        private void Hooks_DispatcherInactive(object sender, EventArgs e)
+        {
+            using (Image<Bgr, Byte> frame = _capture.QueryFrame().ToImage<Bgr, Byte>())
             {
-                MessageBox.Show("Device is in use by another application");
+                if (frame != null)
+                {
+                    Image<Gray, byte> grayImage = frame.Convert<Gray, byte>();
+                    Rectangle[] rectangles = Classifier.DetectMultiScale(grayImage, 1.1, 10);
+                    if (rectangles.Length > 0) _frameCounter++;
+                    else _frameCounter = 0;
+                    if (_frameCounter == 50)
+                    {
+                        frame.Save("face_example.jpg");
+                        _capture.Stop();
+                        InitCortex();
+                        this.Dispatcher.Hooks.DispatcherInactive -= Hooks_DispatcherInactive;
+                    }
+                    foreach (var face in rectangles)
+                    {
+                        frame.Draw(face, new Bgr(System.Drawing.Color.Green), 3);
+                    }
+                    image1.Source = BitmapSourceConvert.ToBitmapSource(frame);
+                }
             }
+        }
+
+        void InitCortex()
+        {
+            VisualСortex vc = new VisualСortex("face_example.jpg");
+            string id = vc.FindPerson();
+            Init();
+            Analysis();
         }
 
         public string Cache { get; set; }
@@ -75,13 +114,16 @@ namespace TestGUI
             }
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        void Analysis()
         {
             PGPI a = new PGPI("afanasov_p");
-            a.Init();
-            //textBlock1.Text = "";
-            
-            //textBlock1.Text += string.Concat(item, "\n");
+            var data = a.Init();
+            foreach(var key in data.Keys)
+            {
+                textbox1.Text += key+" с точностью "+data[key]+"\n";
+                
+            }
         }
+
     }
 }
