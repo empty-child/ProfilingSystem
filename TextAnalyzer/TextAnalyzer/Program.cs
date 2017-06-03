@@ -15,9 +15,9 @@ namespace TextAnalyzer
     {
         static void Main(string[] args)
         {
-            RssReader reader = new RssReader();
-            var rssItem = reader.Init();
-            TextProcessor tProcessor = new TextProcessor(rssItem);
+            //RssReader reader = new RssReader();
+            //var rssItem = reader.Init();
+            TextProcessor tProcessor = new TextProcessor(null);
             var textProcessingResult = tProcessor.Init();
             Matrix matrixCalculator = new Matrix();
             var factorizeResult = matrixCalculator.Factorize(textProcessingResult.Item2);
@@ -34,33 +34,33 @@ namespace TextAnalyzer
         }
     }
 
-    public class RssReader
-    {
-        string[] rssUrl = new string[] { "http://rss.newsru.com/all_news/", "https://news.yandex.ru/index.rss",
-            "https://news.yandex.ru/world.rss", "https://news.yandex.ru/finances.rss", "https://news.yandex.ru/incident.rss",
-            "https://news.yandex.ru/politics.rss", "https://news.yandex.ru/society.rss" };
+    //public class RssReader
+    //{
+    //    string[] rssUrl = new string[] { "http://rss.newsru.com/all_news/", "https://news.yandex.ru/index.rss",
+    //        "https://news.yandex.ru/world.rss", "https://news.yandex.ru/finances.rss", "https://news.yandex.ru/incident.rss",
+    //        "https://news.yandex.ru/politics.rss", "https://news.yandex.ru/society.rss" };
 
-        public List<SyndicationItem> Init()
-        {
-            return RssOpen();
-        }
+    //    public List<SyndicationItem> Init()
+    //    {
+    //        return RssOpen();
+    //    }
 
-        List<SyndicationItem> RssOpen()
-        {
-            List<SyndicationItem> rssItem = new List<SyndicationItem>();
-            foreach (string rss in rssUrl)
-            {
-                XmlReader reader = XmlReader.Create(rss);
-                SyndicationFeed feed = SyndicationFeed.Load(reader);
-                reader.Close();
-                foreach (SyndicationItem item in feed.Items)
-                {
-                    rssItem.Add(item);
-                }
-            }
-            return rssItem;
-        }
-    }
+    //    List<SyndicationItem> RssOpen()
+    //    {
+    //        List<SyndicationItem> rssItem = new List<SyndicationItem>();
+    //        foreach (string rss in rssUrl)
+    //        {
+    //            XmlReader reader = XmlReader.Create(rss);
+    //            SyndicationFeed feed = SyndicationFeed.Load(reader);
+    //            reader.Close();
+    //            foreach (SyndicationItem item in feed.Items)
+    //            {
+    //                rssItem.Add(item);
+    //            }
+    //        }
+    //        return rssItem;
+    //    }
+    //}
 
     public class TextProcessor
     {
@@ -73,36 +73,36 @@ namespace TextAnalyzer
 
         Processor processor = new Processor();
 
-        List<SyndicationItem> rssItem;
+        Dictionary<string, string> textItems;
 
-        public TextProcessor(List<SyndicationItem> rssItem)
+        public TextProcessor(Dictionary<string, string> textItems)
         {
-            this.rssItem = rssItem;
+            this.textItems = textItems;
         }
 
         public Tuple<List<string>, double[,], List<string>> Init()
         {
-            RssProcessing(rssItem);
+            TextParisng(textItems);
             CreateTextMatrix();
             return new Tuple<List<string>, double[,], List<string>>(wordVector, wordMatrix, articleTitle);
         }
 
-        void RssProcessing(List<SyndicationItem> _rssItem)
+        void TextParisng(Dictionary<string,string> items)
         {
-            foreach (SyndicationItem item in _rssItem)
+            foreach (var key in items.Keys)
             {
-                string subject = item.Title.Text;
-                string summary = item.Summary.Text;
+                string subject = key;
+                string summary = items[key];
 
                 TextProcessing(subject, summary);
             }
         }
 
-        void TextProcessing(string title, string body)
+        void TextProcessing(string id, string body)
         {
             string[] words = body.Split(new[] { ' ', ',', ':', '?', '!', '.', '"', '-', '—' }, StringSplitOptions.RemoveEmptyEntries);
             articleWords.Add(new Dictionary<string, int>());
-            articleTitle.Add(title);
+            articleTitle.Add(id);
 
             foreach (string word in words)
             {
@@ -301,10 +301,12 @@ namespace TextAnalyzer
                 }
             }
 
-            wh = Multiply(w, h);
+            
 
             for (int i = 0; i < iter; i++)
             {
+                wh = Multiply(w, h);
+
                 var cost = MatrixCost(v, wh);
                 if (cost == 0) break;
 
@@ -410,22 +412,4 @@ namespace TextAnalyzer
         }
     }
 
-    public class Utils
-    {
-        public static string ReadAllSettings()
-        {
-            try
-            {
-                string text = File.ReadAllText(@"settings.txt");
-
-                return text;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Ошибка прочтения файла настроек: ");
-                Console.WriteLine(e.Message);
-                return null;
-            }
-        }
-    }
 }

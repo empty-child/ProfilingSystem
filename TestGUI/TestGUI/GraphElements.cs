@@ -1,17 +1,19 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
 namespace TestGUI
 {
+    [Serializable]
     public class Node<T>
     {
         // Private member-variables
         private T data;
         private NodeList<T> neighbors = null;
         private Dictionary<T, object> additionalData;
-        private List<T> groupsList;
+        private List<T> groupsList = new List<T>();
 
         public Node() { }
         public Node(T data) : this(data, null) { }
@@ -20,8 +22,6 @@ namespace TestGUI
             this.data = data;
             this.neighbors = neighbors;
         }
-
-
         public Node(T data, NodeList<T> neighbors, Dictionary<T, object> additionalData)
         {
             this.data = data;
@@ -72,6 +72,7 @@ namespace TestGUI
         }
     }
 
+    [Serializable]
     public class NodeList<T> : Collection<Node<T>>
     {
         public NodeList() : base() { }
@@ -95,6 +96,7 @@ namespace TestGUI
         }
     }
 
+    [Serializable]
     public class GraphNode<T> : Node<T>
     {
         private List<int> costs;
@@ -127,12 +129,14 @@ namespace TestGUI
         }
     }
 
+    [Serializable]
     public class Graph<T> : IEnumerable<T>
     {
         private NodeList<T> nodeSet;
         private Dictionary<T, List<T>> groupsMembership = new Dictionary<T, List<T>>(); //{группа1:юзер1,юзер2...}
         private Dictionary<T, List<T>> publications = new Dictionary<T, List<T>>(); //{группа1:пост1}
         private Dictionary<T, List<T>> likesAndViews = new Dictionary<T, List<T>>();//{пост1:юзер1,юзер2...}
+        private Dictionary<T, Dictionary<T, T>>  wallRecords = new Dictionary<T, Dictionary<T, T>>();//{группа: {пост:текст}}
 
         public Graph() : this(null) { }
         public Graph(NodeList<T> nodeSet)
@@ -228,6 +232,11 @@ namespace TestGUI
             return nodeSet.FindByValue(value) != null;
         }
 
+        public Node<T> FindNode(T value)
+        {
+            return (GraphNode<T>)nodeSet.FindByValue(value);
+        }
+
         public bool Remove(T value)
         {
             // first remove the node from the nodeset
@@ -280,6 +289,12 @@ namespace TestGUI
         {
             get { return publications; }
             set { publications = value; }
+        }
+
+        public Dictionary<T, Dictionary<T, T>> WallRecords
+        {
+            get { return wallRecords; }
+            set { wallRecords = value; }
         }
 
         public NodeList<T> Nodes

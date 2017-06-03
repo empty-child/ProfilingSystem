@@ -5,27 +5,39 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using SocialNetworksLibrary;
+using System.Linq;
 
 namespace TestGUI
 {
     public class PGPI
     {
+        string _parameters;
         string _superUserName;
         string _superUserID;
+        string _superUserPhotoUrl;
         Dictionary<string, object> _superUserPrimaryInfo;
         Graph<string> _socialGraph;
+        Dictionary<string, Dictionary<string, double>> _values;
 
-        public PGPI(string superUserName)
+        public PGPI(string superUserName, string parameters)
         {
+            _values = new Dictionary<string, Dictionary<string, double>>();
             _superUserName = superUserName;
+            _parameters = parameters;
         }
 
-        public void Init()
+        public Dictionary<string, string> Init(int layer = 1)
         {
-            RequestPrimaryInfo(_superUserName, "universities");
-            RequestFriendConnections(2, "universities");
-            InitPGPIN();
-            //InitPGPIG();
+#if pDEBUG
+            _socialGraph = Utils.RestoreData();
+            _superUserID = _socialGraph.Nodes[0].Value;
+#else
+            RequestPrimaryInfo(_superUserName, _parameters + ",photo_200");
+            RequestFriendConnections(layer, _parameters);
+            RequestGroupsAndLikes();
+            Utils.SaveToFile(_socialGraph);
+#endif
+            return new Dictionary<string, string> { { "name", _superUserName }, { "photo", _superUserPhotoUrl } };
         }
 
         void RequestPrimaryInfo(string superUserName, string parameters = null)
@@ -33,8 +45,20 @@ namespace TestGUI
             var result = Methods.UsersGet(new string[] { superUserName }, new string[] { parameters });
             var answer = (Dictionary<string, object>)result[0];
             _superUserID = answer["id"].ToString(); //TODO: унифицировать форму параметров
+            _superUserPhotoUrl = answer["photo_200"].ToString();
+            _superUserName = answer["first_name"].ToString() + " " + answer["last_name"].ToString();
             _superUserPrimaryInfo = answer;
             _superUserPrimaryInfo.Remove("id");
+            _superUserPrimaryInfo.Remove("photo_200");
+            _superUserPrimaryInfo.Remove("first_name");
+            _superUserPrimaryInfo.Remove("last_name");
+            try
+            {
+                string[] year = answer["bdate"].ToString().Split('.');
+                answer.Remove("bdate");
+                answer.Add("bdate", year[2]);
+            }
+            catch { }
         }
 
         void RequestFriendConnections(int depth = 1, string parameters = null)
@@ -64,24 +88,37 @@ namespace TestGUI
                         var data = Methods.Execute(executeParameters);
 
                         int c = 0;
-                        foreach (Dictionary<string, dynamic> items in data)
+                        try
                         {
-                            targetIDs = new List<string>();
-                            targetData = new List<Dictionary<string, object>>();
-                            foreach (var response in items["items"])
+                            foreach (Dictionary<string, dynamic> items in data)
                             {
-                                targetIDs.Add(response["id"].ToString());
-                                if (response.Count > 1)
+                                targetIDs = new List<string>();
+                                targetData = new List<Dictionary<string, object>>();
+                                foreach (var response in items["items"])
                                 {
-                                    response.Remove("id");
-                                    targetData.Add(response);
+                                    targetIDs.Add(response["id"].ToString());
+                                    if (response.Count > 1)
+                                    {
+                                        response.Remove("id");
+                                        response.Remove("last_name");
+                                        response.Remove("first_name");
+                                        try
+                                        {
+                                            string[] year = response["bdate"].Split('.');
+                                            response.Remove("bdate");
+                                            response.Add("bdate", year[2]);
+                                        }
+                                        catch { }
+                                        targetData.Add(response);
+                                    }
                                 }
+                                if (targetData.Count == 0) targetData = null;
+                                GraphUtils.AddNodesAndConnections(_socialGraph, targetIDs, sourceIDs[c], targetData);
+                                //TODO: восстановить соответствующий getMutual
+                                c++;
                             }
-                            if (targetData.Count == 0) targetData = null;
-                            GraphUtils.AddNodesAndConnections(_socialGraph, targetIDs, sourceIDs[c], targetData);
-                            //TODO: восстановить соответствующий getMutual
-                            c++;
                         }
+                        catch { c++; }
                         executeParameters = new List<Dictionary<string, string>>();
                         socialGraphMark = j == 0 ? 1 : j; //для корректного чтения нод при глубине больше 1
                     }
@@ -89,10 +126,9 @@ namespace TestGUI
             }
         }
 
-        void InitPGPIN(int accessedFacts = 10)
+        public Dictionary<string, Dictionary<string, double>> InitPGPIN()
         {
             Queue<Node<string>> IdQuene = new Queue<Node<string>>();
-            Dictionary<string, Dictionary<string, double>> Values = new Dictionary<string, Dictionary<string, double>>();
             List<Node<string>> Seen = new List<Node<string>>();
             Dictionary<string, dynamic> njParameters;
             double FValue = 0;
@@ -105,52 +141,15 @@ namespace TestGUI
             IdQuene.Enqueue(_socialGraph.Nodes[0]);
             Seen.Add(ni);
 
-            while (IdQuene.Count > 0) //TODO: добавить maxFacts (необ)
+            while (IdQuene.Count > 0)
             {
-                var nj = IdQuene.Dequeue();
+                Node<string> nj = IdQuene.Dequeue();
                 njParameters = nj.ParametersData;
-                int count = 0;
-                foreach (var elem in niParameters.Keys)
-                {
-                    try
-                    {
-                        if (niParameters[elem] == njParameters[elem]) count++; //TODO: обработка вложенных словарей
-                    }
-                    catch { }
-                }
-                if (commonCost[nj] != 0) FValue = (count / niParameters.Count) / commonCost[nj];
+                FValue = FValueComputation(niParameters, njParameters, nj);
+                if (commonCost[nj] != 0) FValue = FValue / (double)commonCost[nj];
                 else FValue = 0;
-                foreach (var key in nj.ParametersData.Keys)
-                {
-                    if (nj.ParametersData[key] is List<Dictionary<string, object>>)
-                    {
-                        var w = nj.ParametersData[key];
-                        //foreach (var item in nj.ParametersData[key])
-                        //{
-                        //    string temp = "";
-                        //    if (Values.ContainsKey(temp))
-                        //    {
-                        //    }
-                        //}
-                    }
-                    if (Values.ContainsKey(key))
-                    {
+                ValuesSave(nj, njParameters, FValue);
 
-                        if (Values[key].ContainsKey(nj.ParametersData[key].ToString())) //TODO: обработка вложенных словарей
-                        {
-
-                            Values[key][nj.ParametersData[key].ToString()] += FValue;
-                        }
-                        else
-                        {
-                            Values[key].Add(nj.ParametersData[key].ToString(), FValue);
-                        }
-                    }
-                    else
-                    {
-                        Values.Add(key, new Dictionary<string, double> { { nj.ParametersData[key].ToString(), FValue } });
-                    }
-                }
                 //Values: структура - {"sex": {"female": цифра, "male": цифра}, "city": ...}
 
                 foreach (var node in nj.Neighbors)
@@ -162,9 +161,134 @@ namespace TestGUI
                     }
                 }
             }
+            return _values;
         }
 
-        void InitPGPIG()
+        void ValuesSave(Node<string> nj, Dictionary<string, dynamic> njParameters, double FValue)
+        {
+            foreach (var key in nj.ParametersData.Keys)
+            {
+                if (nj.ParametersData[key] is List<object>)
+                {
+                    try
+                    {
+                        foreach (Dictionary<string, object> dnj in njParameters[key])
+                        {
+                            foreach (string elem in dnj.Keys)
+                            {
+                                if (_values.ContainsKey(key + "." + elem))
+                                {
+
+                                    if (_values[key + "." + elem].ContainsKey(dnj[elem].ToString()))
+                                    {
+                                        _values[key + "." + elem][dnj[elem].ToString()] += FValue;
+                                    }
+                                    else
+                                    {
+                                        _values[key + "." + elem].Add(dnj[elem].ToString(), FValue);
+                                    }
+                                }
+                                else
+                                {
+                                    _values.Add(key + "." + elem, new Dictionary<string, double> { { dnj[elem].ToString(), FValue } });
+                                }
+                            }
+                        }
+                    }
+                    catch { }
+                }
+                else if (nj.ParametersData[key] is Dictionary<string, object> paramnj)
+                {
+                    foreach (string elem in paramnj.Keys)
+                    {
+                        if (_values.ContainsKey(key + "." + elem))
+                        {
+
+                            if (_values[key + "." + elem].ContainsKey(paramnj[elem].ToString()))
+                            {
+                                _values[key + "." + elem][paramnj[elem].ToString()] += FValue;
+                            }
+                            else
+                            {
+                                _values[key + "." + elem].Add(paramnj[elem].ToString(), FValue);
+                            }
+                        }
+                        else
+                        {
+                            _values.Add(key + "." + elem, new Dictionary<string, double> { { paramnj[elem].ToString(), FValue } });
+                        }
+                    }
+                }
+                else if (_values.ContainsKey(key))
+                {
+
+                    if (_values[key].ContainsKey(nj.ParametersData[key].ToString()))
+                    {
+
+                        _values[key][nj.ParametersData[key].ToString()] += FValue;
+                    }
+                    else
+                    {
+                        _values[key].Add(nj.ParametersData[key].ToString(), FValue);
+                    }
+                }
+                else
+                {
+                    _values.Add(key, new Dictionary<string, double> { { nj.ParametersData[key].ToString(), FValue } });
+                }
+            }
+        }
+
+        double FValueComputation(Dictionary<string, dynamic> niParameters, Dictionary<string, dynamic> njParameters, Node<string> nj)
+        {
+            int count = 0;
+            int niLength = 0;
+            double FValue = 0;
+            foreach (var elem in niParameters.Keys)
+            {
+                try
+                {
+                    if (njParameters[elem] is List<object>)
+                    {
+                        foreach (Dictionary<string, object> dni in niParameters[elem])
+                        {
+                            foreach (Dictionary<string, object> dnj in njParameters[elem])
+                            {
+                                foreach (string key in dni.Keys)
+                                {
+                                    if (dni[key] == dnj[key]) count++;
+                                    niLength++;
+                                }
+                            }
+                        }
+                    }
+                    else if (njParameters[elem] is Dictionary<string, object>)
+                    {
+                        foreach (string niKey in niParameters[elem].Keys)
+                        {
+                            if (njParameters[elem].ContainsKey(niKey))
+                            {
+                                if (njParameters[elem][niKey] == niParameters[elem][niKey]) count++;
+                                niLength++;
+                            }
+                        }
+                    }
+                    else if (niParameters[elem] == njParameters[elem])
+                    {
+                        count++;
+                        niLength++;
+                    }
+                    else niLength++;
+                }
+                catch { }
+            }
+
+            if (niLength != 0) FValue = ((double)count / (double)niLength);
+            else FValue = 0;
+            return FValue;
+        }
+
+        void RequestGroupsAndLikes()
         {
             int socialGraphMark = 0;
             List<string> targetIDs = new List<string>();
@@ -184,46 +308,111 @@ namespace TestGUI
                     var data = Methods.Execute(executeParameters);
 
                     int c = 0;
-                    foreach (Dictionary<string, dynamic> items in data)
+                    try
                     {
-                        targetIDs = new List<string>();
-                        targetData = new List<Dictionary<string, object>>();
-                        foreach (var response in items["items"])
+                        foreach (Dictionary<string, dynamic> items in data)
                         {
-                            if (_socialGraph.GroupsMembership.ContainsKey(response["id"].ToString()))
+                            targetIDs = new List<string>();
+                            targetData = new List<Dictionary<string, object>>();
+                            foreach (var response in items["items"])
                             {
-                                _socialGraph.GroupsMembership[response["id"].ToString()].Add(sourceIDs[c]);
+                                if (_socialGraph.GroupsMembership.ContainsKey(response.ToString()))
+                                {
+                                    _socialGraph.GroupsMembership[response.ToString()].Add(sourceIDs[c]);
+                                }
+                                else if (j == 0)
+                                {
+                                    _socialGraph.GroupsMembership.Add(response.ToString(), new List<string> { sourceIDs[c] });
+                                }
+                                var node = _socialGraph.FindNode(sourceIDs[c]);
+                                node.GroupsList.Add(response.ToString());
                             }
-                            else
-                            {
-                                _socialGraph.GroupsMembership.Add(response["id"].ToString(), new List<string> { sourceIDs[c] });
-
-                            }
+                            //if (targetData.Count == 0) targetData = null;
+                            //GraphUtils.AddNodesAndConnections(_socialGraph, targetIDs, sourceIDs[c], targetData);
+                            c++;
                         }
-                        //if (targetData.Count == 0) targetData = null;
-                        //GraphUtils.AddNodesAndConnections(_socialGraph, targetIDs, sourceIDs[c], targetData);
-                        c++;
                     }
+                    catch { }
                     executeParameters = new List<Dictionary<string, string>>();
                 }
             }
 
-            foreach (var group in _socialGraph.GroupsMembership.Keys)
+            var keys = new List<string>(_socialGraph.GroupsMembership.Keys);
+            foreach (var group in keys)
             {
                 foreach (var user in _socialGraph.GroupsMembership[group])
                 {
-                    for (int i = 0; i < 6; i++)
+                    for (int i = 0; i < 1; i++)
                     {
-                        Thread.Sleep(350);
-                        var data = Methods.Execute(WebUtility.UrlEncode("var response={};\nvar posts = API.wall.get({\"owner_id\":\"" + "-" + group + "\",\"count\":24});\nvar b = 0;\nvar s = posts.items.length;\nwhile (s != 0){\nvar data = API.likes.isLiked({ \"user_id\":\"" + user + "\",\"type\":\"post\",\"owner_id\":\"" + "-" + group + "\",\"item_id\":posts.items[b].id});\nresponse=response+[{\"item_id\":posts.items[b].id, \"liked\":data.liked}];\nb =b+1;\ns=s-1;\n}\nreturn {\"items\":response};\n"));
+                        try
+                        {
+                            if (_socialGraph.GroupsMembership[group].Contains(user))
+                            {
+                                Thread.Sleep(350);
+                                if (user != null && user != "" && group != null && group != "")
+                                {
+                                    var data = Methods.Execute(WebUtility.UrlEncode("var response={};\nvar posts = API.wall.get({\"owner_id\":\"" + "-" + group + "\",\"count\":24});\nif(posts.items!=null){\nvar b = 0;\nvar s = posts.items.length;\nwhile (s != 0){\nvar data = API.likes.isLiked({ \"user_id\":\"" + user + "\",\"type\":\"post\",\"owner_id\":\"" + "-" + group + "\",\"item_id\":posts.items[b].id});\nresponse=response+[{\"item_id\":posts.items[b].id, \"liked\":data.liked, \"body\":posts.items[b].text}];\nb =b+1;\ns=s-1;\n}\nreturn [{\"count\":posts.items.length,\"items\":response}];}\nelse{return [{\"items\":0}];}\n"));
 
-                        GraphUtils.AddLikesAndPublications(_socialGraph, group, user, data);
+
+                                    GraphUtils.AddLikesAndPublications(_socialGraph, group, user, (Dictionary<string, dynamic>)data[0]);
+
+
+                                }
+                            }
+
+                        }
+                        catch { }
                     }
                 }
             }
         }
 
-        void PGPIG()
+        public Dictionary<string, Dictionary<string, double>> InitPGPIG()
+        {
+            var ni = _socialGraph.Nodes[0];
+            Dictionary<string, dynamic> niParameters = ni.ParametersData;
+
+            foreach (var group in _socialGraph.GroupsMembership.Keys)
+            {
+                foreach (var groupName in _socialGraph.GroupsMembership.Keys)
+                {
+
+                }
+
+                int commonPopularAttributes;
+                foreach (var user in _socialGraph.GroupsMembership[group])
+                {
+                    var node = _socialGraph.FindNode(user);
+                    if (node != ni)
+                    {
+
+                        var njParameters = node.ParametersData;
+                        double FValue = FValueComputation(niParameters, njParameters, node);
+                        int commonLikes = 0;
+                        int commonGroups = 0;
+                        List<string> posts = _socialGraph.Publications[group];
+                        foreach (var postID in posts)
+                        {
+                            try
+                            {
+                                if (_socialGraph.LikesAndViewes[postID].Contains(node.Value) && _socialGraph.LikesAndViewes[postID].Contains(ni.Value))
+                                {
+                                    commonLikes++;
+                                }
+                            }
+                            catch { }
+                        }
+                        commonGroups = ni.GroupsList.Intersect(node.GroupsList).Count();
+                        FValue = FValue * commonLikes * commonGroups;
+                        ValuesSave(node, njParameters, FValue);
+                    }
+
+                }
+            }
+            return _values;
+        }
+
+        void TextAnalysis()
         {
 
         }
@@ -264,31 +453,46 @@ namespace TestGUI
             ///
         }
 
-        public static void AddLikesAndPublications(Graph<string> _socialGraph, string group, string user, List<object> likesAndPublications)
+        public static void AddLikesAndPublications(Graph<string> _socialGraph, string group, string user, Dictionary<string, dynamic> likesAndPublications)
         {
-            foreach (Dictionary<string, dynamic> items in likesAndPublications)
+            if (likesAndPublications["items"] is List<Object>)
             {
-                string itemID = items["item_id"].ToString();
-                bool liked = Convert.ToBoolean(items["liked"]);
-                if (_socialGraph.Publications.ContainsKey(group))
+                foreach (Dictionary<string, dynamic> items in likesAndPublications["items"])
                 {
-                    if (!_socialGraph.Publications[group].Contains(itemID)) _socialGraph.Publications[group].Add(itemID);
-                }
-                else
-                {
-                    _socialGraph.Publications.Add(group, new List<string> { itemID });
-                }
-                if (liked)
-                {
-                    if (_socialGraph.LikesAndViewes.ContainsKey(itemID))
+                    string itemID = items["item_id"].ToString();
+                    bool liked = Convert.ToBoolean(items["liked"]);
+                    if (_socialGraph.Publications.ContainsKey(group))
                     {
-                        if (!_socialGraph.LikesAndViewes[itemID].Contains(user)) _socialGraph.LikesAndViewes[itemID].Add(user);
+                        if (!_socialGraph.Publications[group].Contains(itemID)) _socialGraph.Publications[group].Add(itemID);
                     }
                     else
                     {
-                        _socialGraph.LikesAndViewes.Add(itemID, new List<string> { user });
+                        _socialGraph.Publications.Add(group, new List<string> { itemID });
+                    }
+                    if (liked)
+                    {
+                        if (_socialGraph.LikesAndViewes.ContainsKey(itemID))
+                        {
+                            if (!_socialGraph.LikesAndViewes[itemID].Contains(user)) _socialGraph.LikesAndViewes[itemID].Add(user);
+                        }
+                        else
+                        {
+                            _socialGraph.LikesAndViewes.Add(itemID, new List<string> { user });
+                        }
+                    }
+                    if (_socialGraph.WallRecords.ContainsKey(group))
+                    {
+                        _socialGraph.WallRecords[group].Add(itemID, items["body"].ToString());
+                    }
+                    else
+                    {
+                        _socialGraph.WallRecords.Add(group, new Dictionary<string, string> { { itemID, items["body"].ToString() } });
                     }
                 }
+            }
+            else
+            {
+                _socialGraph.GroupsMembership.Remove(group);
             }
         }
     }
@@ -401,6 +605,27 @@ namespace TestGUI
             {
                 //DialogResult error = MessageBox.Show(e.Message, "Ошибка", MessageBoxButtons.OK);
                 return e.ToString();
+            }
+        }
+
+        public static void SaveToFile(Graph<string> _socialGraph)
+        {
+            using (Stream stream = File.Open("socialGraph.bin", FileMode.Create))
+            {
+                var bformatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+
+                bformatter.Serialize(stream, _socialGraph);
+            }
+        }
+
+        public static Graph<string> RestoreData()
+        {
+            using (Stream stream = File.Open("socialGraph.bin", FileMode.Open))
+            {
+                var bformatter = new System.Runtime.Serialization.Formatters.Binary.BinaryFormatter();
+
+                Graph<string> _socialGraph = (Graph<string>)bformatter.Deserialize(stream);
+                return _socialGraph;
             }
         }
     }
