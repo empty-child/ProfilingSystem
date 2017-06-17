@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.7
+VisualStudioVersion = 15.0.26430.13
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestGUI", "TestGUI\TestGUI.csproj", "{C1843F85-C3E2-4896-A05E-C4194BD6FB66}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CoreCVandUI", "TestGUI\CoreCVandUI.csproj", "{C1843F85-C3E2-4896-A05E-C4194BD6FB66}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

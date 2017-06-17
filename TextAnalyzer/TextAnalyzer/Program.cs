@@ -73,9 +73,9 @@ namespace TextAnalyzer
 
         Processor processor = new Processor();
 
-        Dictionary<string, string> textItems;
+        Dictionary<string, Dictionary<string, string>> textItems;
 
-        public TextProcessor(Dictionary<string, string> textItems)
+        public TextProcessor(Dictionary<string, Dictionary<string, string>> textItems)
         {
             this.textItems = textItems;
         }
@@ -87,14 +87,17 @@ namespace TextAnalyzer
             return new Tuple<List<string>, double[,], List<string>>(wordVector, wordMatrix, articleTitle);
         }
 
-        void TextParisng(Dictionary<string,string> items)
+        void TextParisng(Dictionary<string, Dictionary<string, string>> items)
         {
             foreach (var key in items.Keys)
             {
-                string subject = key;
-                string summary = items[key];
+                foreach (var innerkey in items[key].Keys)
+                {
+                    string subject = key;
+                    string summary = items[key][innerkey];
 
-                TextProcessing(subject, summary);
+                    TextProcessing(subject + "." + innerkey, summary);
+                }
             }
         }
 
@@ -107,10 +110,10 @@ namespace TextAnalyzer
             foreach (string word in words)
             {
                 AnalysisResult ar = processor.Process(new SourceOfAnalysis(word));
-                Token t = ar.FirstToken; 
+                Token t = ar.FirstToken;
                 if (!(t is TextToken)) continue;
-                if (t.Morph.Class.IsConjunction || t.Morph.Class.IsMisc || 
-                    t.Morph.Class.IsUndefined || t.Morph.Class.IsPersonalPronoun || 
+                if (t.Morph.Class.IsConjunction || t.Morph.Class.IsMisc ||
+                    t.Morph.Class.IsUndefined || t.Morph.Class.IsPersonalPronoun ||
                     t.Morph.Class.IsPreposition || t.Morph.Class.IsPronoun) continue;
                 string norm = t.GetNormalCaseText(null, true);
                 //string norm = word.ToLower();
@@ -274,7 +277,7 @@ namespace TextAnalyzer
             return output;
         }
 
-        public Tuple<double[,], double[,]> Factorize(double[,] v, int pc = 10, int iter = 50)
+        public Tuple<double[,], double[,]> Factorize(double[,] v, int pc = 10, int iter = 20)
         {
             int ic = v.GetLength(0);
             int fc = v.GetLength(1);
@@ -301,14 +304,14 @@ namespace TextAnalyzer
                 }
             }
 
-            
+
 
             for (int i = 0; i < iter; i++)
             {
                 wh = Multiply(w, h);
 
                 var cost = MatrixCost(v, wh);
-                if (cost == 0) break;
+                if (cost == 0 || double.IsNaN(cost)) break;
 
                 double[,] hn = Multiply(Transpose(w), v);
                 double[,] hd = Multiply(Multiply(Transpose(w), w), h);
@@ -366,9 +369,10 @@ namespace TextAnalyzer
             this.wordVector = wordVector;
         }
 
-        public void Init()
+        public List<string> Init()
         {
             StreamWriter sw = new StreamWriter("features.txt");
+            List<string> groupsID = new List<string>();
 
             for (int i = 0, pc = h.GetLength(0); i < pc; i++)
             {
@@ -381,7 +385,7 @@ namespace TextAnalyzer
                     slist.Add(wordVector[j], h[i, j]);
                 }
 
-                top = slist.OrderByDescending(pair => pair.Value).Take(5).ToDictionary(pair => pair.Key, pair => pair.Value);
+                top = slist.OrderByDescending(pair => pair.Value).Take(10).ToDictionary(pair => pair.Key, pair => pair.Value);
                 foreach (string word in top.Keys)
                 {
                     sw.WriteLine(word);
@@ -400,15 +404,17 @@ namespace TextAnalyzer
                     topPatterns[i].Add(new TopPatterns { w = w[j, i], i = i, title = articleTitle[j] });
                 }
 
-                top = slist.OrderByDescending(pair => pair.Value).Take(3).ToDictionary(pair => pair.Key, pair => pair.Value);
+                top = slist.OrderByDescending(pair => pair.Value).Take(6).ToDictionary(pair => pair.Key, pair => pair.Value);
                 foreach (string word in top.Keys)
                 {
                     sw.WriteLine(word);
+                    groupsID.Add(word);
                 }
 
                 sw.Write("\n");
             }
             sw.Close();
+            return groupsID;
         }
     }
 

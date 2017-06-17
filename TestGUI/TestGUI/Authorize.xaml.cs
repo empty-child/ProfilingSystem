@@ -2,7 +2,7 @@
 using System;
 using System.Windows;
 
-namespace TestGUI
+namespace CoreCVandUI
 {
     /// <summary>
     /// Логика взаимодействия для Authorize.xaml
