@@ -245,3 +245,6 @@ ModelManifest.xml
 /SocialNetworksLibrary/VK/Properties/Settings.settings
 /SocialNetworksLibrary/VK/Properties/Settings.Designer.cs
 /SocialNetworksLibrary/VK/app.config
+/TestGUI/TestGUI/app.config
+/TestGUI/TestGUI/Properties/Settings.Designer.cs
+/TestGUI/TestGUI/Properties/Settings.settings

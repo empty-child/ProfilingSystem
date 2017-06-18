@@ -1,9 +1,10 @@
 ﻿using System;
-using Core;
+using System.Collections.Generic;
+using TestGUI;
 
 using VkProperties = VK.Properties.Settings;
 
-namespace VK
+namespace SocialNetworksLibrary
 {
     public class Authenticate : IAuthentication
     {
@@ -61,6 +62,8 @@ namespace VK
             if (token != "" || token != null)
             {
                 AccessToken = token;
+                VkProperties.Default.AccessToken = token;
+                VkProperties.Default.Save();
             }
         }
 
@@ -117,11 +120,81 @@ namespace VK
 
         public string ApiRequest()
         {
-            string Response = Utils.Request(string.Format("{0}{1}?{2}&access_token={3}", _serverUrl, _methodName, _parameters, _accessToken), "POST");
+            string Response = Utils.Request(string.Format("{0}{1}?{2}&v=5.63&access_token={3}", _serverUrl, _methodName, _parameters, _accessToken), "POST");
             _outputData = Response;
             return Response;
         }
     }
 
+    public static class Methods
+    {
+        #region Methods for PGPI-N
+
+        //Возвращает расширенную информацию о пользователях. 
+        public static List<object> UsersGet(string[] userIDs, string[] fields, string nameCase = "nom")
+        {
+            string Parameters = string.Format("user_ids={0}&fields={1}&name_case={2}",
+                string.Join(",", userIDs), string.Join(",", fields), nameCase);
+            return JsonParsing("users.get", Parameters);
+        }
+
+        //Возвращает список идентификаторов пользователей и публичных страниц, которые входят в список подписок пользователя. 
+        public static List<object> UsersGetSubscriptions(string userID, string[] fields)
+        {
+            string Parameters = string.Format("user_id={0}&fields={1}",
+                userID, string.Join(",", fields));
+            return JsonParsing("users.getSubscriptions", Parameters);
+        }
+
+        ////Возвращает список идентификаторов друзей пользователя или расширенную информацию о друзьях пользователя 
+        public static List<object> FriendsGet(string userID, string order, string count, string[] fields, string nameCase = "nom")
+        {
+            string Parameters = string.Format("user_id={0}&order={1}&fields={3}",
+                userID, order, count, string.Join(",", fields), nameCase);
+            return JsonParsing("friends.get", Parameters);
+        }
+
+        //Возвращает список идентификаторов общих друзей между парой пользователей
+        public static List<object> FriendsGetMutual(string sourceID, string[] targetIDs)
+        {
+            string Parameters = string.Format("source_uid={0}&target_uids={1}",
+                sourceID, string.Join(",", targetIDs));
+            return JsonParsing("friends.getMutual", Parameters);
+        }
+
+        #endregion
+
+        public static List<object> Execute(List<Dictionary<string, string>> data)
+        {
+            string code = null;
+            foreach (var query in data)
+            {
+                if (query["parameters"] != null)
+                {
+                    code += "API." + query["method"] + "({" + query["parameters"] + "}),";
+                }
+            }
+            string Parameters = string.Format("code=return [{0}];",
+                code);
+            return JsonParsing("execute", Parameters);
+        }
+
+        public static List<object> Execute(string code)
+        {
+            return JsonParsing("execute", "code=" + code);
+        }
+
+        public static List<object> JsonParsing(string method, string parameters)
+        {
+            InitRequest usersGet = new InitRequest();
+            usersGet.MethodName = method;
+            usersGet.Parameters = parameters;
+            string result = usersGet.ApiRequest();
+            //return JSONParser.JsonParsing(result);
+            var response = (Dictionary<string, object>)JSONParser.JsonParsing(result);
+            var responseList = (List<object>)response["response"];
+            return responseList;
+        }
+    }
 
 }

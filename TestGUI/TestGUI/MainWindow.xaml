@@ -1,0 +1,92 @@
+﻿<Window x:Class="CoreCVandUI.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        Title="Информационно-аналитическая система" Height="480" Width="640" MinWidth="640" MinHeight="480">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="253*"/>
+            <ColumnDefinition Width="256*"/>
+            <ColumnDefinition Width="123*"/>
+        </Grid.ColumnDefinitions>
+
+        <Border BorderBrush="Black" BorderThickness="1,0">
+            <Grid Grid.Column="0" UseLayoutRounding="False">
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition Height="0.15*"/>
+                    <RowDefinition Height="0.15*"/>
+                    <RowDefinition Height="0.15*"/>
+                </Grid.RowDefinitions>
+
+                <Border BorderBrush="Black" BorderThickness="0,0,0,1"/>
+
+                <TextBlock Grid.Row="1"
+                           Text="Камеры" TextAlignment="Left" FlowDirection="LeftToRight" Margin="10,13,191,9" Height="22" VerticalAlignment="Center" />
+                <ComboBox Grid.Row="1"
+                          x:Name="Camera_Selection" SelectionChanged="Camera_Selection_SelectionChanged" Margin="60,10,10,9" VerticalAlignment="Center" Height="21"/>
+                <TextBlock Margin="84,17,83,0" TextWrapping="Wrap" Text="Видеопоток" VerticalAlignment="Top" MinWidth="83" MinHeight="19" FontSize="14" TextAlignment="Center" Height="19"/>
+                <Image x:Name="image1" Margin="10,36,10,10" MinWidth="203" MinHeight="204" Source="resources/empty.png" Stretch="Fill"/>
+                <Grid Grid.Row="3" Margin="0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition Width="0.35*"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Content="Глубина&#xD;&#xA;сканирования" Grid.Column="0" Margin="7,0,36,0" VerticalAlignment="Center" Height="43"/>
+                    <TextBox x:Name="depthBox" Margin="100,9,10,9" TextWrapping="Wrap" Text="1" VerticalAlignment="Center" TextAlignment="Right" Height="22"/>
+                    <Button x:Name="settingsButton" Grid.Column="1" Margin="10,9" Click="settingsButton_Click" Height="22" VerticalAlignment="Center">
+                        <Image Source="resources/seticon.png"></Image>
+                    </Button>
+                </Grid>
+                <Button x:Name="captureControlButton" Content="Остановить захват" Margin="10,8,10,7" VerticalAlignment="Center" Height="24" Grid.Row="2" Click="captureControlButton_Click"/>
+
+            </Grid>
+        </Border>
+        <TextBlock Grid.Column="1" Margin="63,15,62,0" TextWrapping="Wrap" Text="Выходные данные" VerticalAlignment="Top" MinWidth="123" MinHeight="19" FontSize="14" TextAlignment="Center" Grid.ColumnSpan="2"/>
+        <TextBlock TextWrapping="Wrap" Text="///Release Build 4///GUI: RC2, Base Algorithm: RC, Additional Algorithm: RC3///" VerticalAlignment="Top" Grid.ColumnSpan="3" TextAlignment="Center">
+            <TextBlock.Background>
+                <SolidColorBrush Color="#FF767676" Opacity="0.5"/>
+            </TextBlock.Background>
+        </TextBlock>
+        <Grid Grid.Column="1" Margin="10,39,10,10" Grid.ColumnSpan="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="2*"/>
+                <ColumnDefinition Width="3*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="1.5*"/>
+                <RowDefinition Height="0.1*"/>
+                <RowDefinition/>
+                <RowDefinition Height="0.1*"/>
+                <RowDefinition/>
+                <RowDefinition Height="0.1*"/>
+                <RowDefinition/>
+                <RowDefinition Height="0.1*"/>
+                <RowDefinition/>
+                <RowDefinition Height="0.1*"/>
+                <RowDefinition/>
+            </Grid.RowDefinitions>
+
+            <Image x:Name="img1" Grid.Column="1" Margin="0,0,5,0"/>
+            <TextBlock x:Name="nameTextBlock" Margin="0,11" TextWrapping="Wrap" FontSize="18" Grid.Column="0" Height="64" VerticalAlignment="Center"/>
+            <TextBlock Margin="0,19,0,18" Grid.Row="2" TextWrapping="Wrap" Text="Общие данные" VerticalAlignment="Center" Height="20" MinWidth="96" MinHeight="20"/>
+            <TextBox x:Name="mainDataTextBox" Grid.Column="1" Grid.Row="2" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" HorizontalContentAlignment="Stretch" VerticalContentAlignment="Stretch"/>
+            <TextBlock Margin="0,19,0,18" Grid.Row="4" TextWrapping="Wrap" Text="Среднее образование" VerticalAlignment="Center" Height="20" MinWidth="96" MinHeight="20"/>
+            <TextBox x:Name="mEducationDataTextBox" Grid.Column="1" Grid.Row="4" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"/>
+            <TextBlock Margin="0,19,0,18" Grid.Row="6" TextWrapping="Wrap" Text="Высшее образование" VerticalAlignment="Center" Height="20" MinWidth="96" MinHeight="19"/>
+            <TextBox x:Name="hEducationDataTextBox" Grid.Column="1" Grid.Row="6" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"/>
+            <TextBlock Margin="0,19,0,18" Grid.Row="8" TextWrapping="Wrap" Text="Карьера" VerticalAlignment="Center" Height="20" MinWidth="96" MinHeight="20"/>
+            <TextBox x:Name="careerDataTextBox" Grid.Column="1" Grid.Row="8" TextWrapping="Wrap" VerticalScrollBarVisibility="Auto" VerticalContentAlignment="Stretch" HorizontalContentAlignment="Stretch"/>
+            <TextBox x:Name="textAnalysisResultBox" TextWrapping="Wrap" Grid.Row="10" Grid.Column="1"/>
+            <TextBlock Margin="0,19,0,18" Grid.Row="10" TextWrapping="Wrap" Text="Интересы" VerticalAlignment="Center" Height="20" MinWidth="96" MinHeight="20"/>
+
+        </Grid>
+
+    </Grid>
+</Window>

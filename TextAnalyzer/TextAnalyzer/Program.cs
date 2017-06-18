@@ -15,9 +15,9 @@ namespace TextAnalyzer
     {
         static void Main(string[] args)
         {
-            RssReader reader = new RssReader();
-            var rssItem = reader.Init();
-            TextProcessor tProcessor = new TextProcessor(rssItem);
+            //RssReader reader = new RssReader();
+            //var rssItem = reader.Init();
+            TextProcessor tProcessor = new TextProcessor(null);
             var textProcessingResult = tProcessor.Init();
             Matrix matrixCalculator = new Matrix();
             var factorizeResult = matrixCalculator.Factorize(textProcessingResult.Item2);
@@ -34,33 +34,33 @@ namespace TextAnalyzer
         }
     }
 
-    public class RssReader
-    {
-        string[] rssUrl = new string[] { "http://rss.newsru.com/all_news/", "https://news.yandex.ru/index.rss",
-            "https://news.yandex.ru/world.rss", "https://news.yandex.ru/finances.rss", "https://news.yandex.ru/incident.rss",
-            "https://news.yandex.ru/politics.rss", "https://news.yandex.ru/society.rss" };
+    //public class RssReader
+    //{
+    //    string[] rssUrl = new string[] { "http://rss.newsru.com/all_news/", "https://news.yandex.ru/index.rss",
+    //        "https://news.yandex.ru/world.rss", "https://news.yandex.ru/finances.rss", "https://news.yandex.ru/incident.rss",
+    //        "https://news.yandex.ru/politics.rss", "https://news.yandex.ru/society.rss" };
 
-        public List<SyndicationItem> Init()
-        {
-            return RssOpen();
-        }
+    //    public List<SyndicationItem> Init()
+    //    {
+    //        return RssOpen();
+    //    }
 
-        List<SyndicationItem> RssOpen()
-        {
-            List<SyndicationItem> rssItem = new List<SyndicationItem>();
-            foreach (string rss in rssUrl)
-            {
-                XmlReader reader = XmlReader.Create(rss);
-                SyndicationFeed feed = SyndicationFeed.Load(reader);
-                reader.Close();
-                foreach (SyndicationItem item in feed.Items)
-                {
-                    rssItem.Add(item);
-                }
-            }
-            return rssItem;
-        }
-    }
+    //    List<SyndicationItem> RssOpen()
+    //    {
+    //        List<SyndicationItem> rssItem = new List<SyndicationItem>();
+    //        foreach (string rss in rssUrl)
+    //        {
+    //            XmlReader reader = XmlReader.Create(rss);
+    //            SyndicationFeed feed = SyndicationFeed.Load(reader);
+    //            reader.Close();
+    //            foreach (SyndicationItem item in feed.Items)
+    //            {
+    //                rssItem.Add(item);
+    //            }
+    //        }
+    //        return rssItem;
+    //    }
+    //}
 
     public class TextProcessor
     {
@@ -73,44 +73,47 @@ namespace TextAnalyzer
 
         Processor processor = new Processor();
 
-        List<SyndicationItem> rssItem;
+        Dictionary<string, Dictionary<string, string>> textItems;
 
-        public TextProcessor(List<SyndicationItem> rssItem)
+        public TextProcessor(Dictionary<string, Dictionary<string, string>> textItems)
         {
-            this.rssItem = rssItem;
+            this.textItems = textItems;
         }
 
         public Tuple<List<string>, double[,], List<string>> Init()
         {
-            RssProcessing(rssItem);
+            TextParisng(textItems);
             CreateTextMatrix();
             return new Tuple<List<string>, double[,], List<string>>(wordVector, wordMatrix, articleTitle);
         }
 
-        void RssProcessing(List<SyndicationItem> _rssItem)
+        void TextParisng(Dictionary<string, Dictionary<string, string>> items)
         {
-            foreach (SyndicationItem item in _rssItem)
+            foreach (var key in items.Keys)
             {
-                string subject = item.Title.Text;
-                string summary = item.Summary.Text;
+                foreach (var innerkey in items[key].Keys)
+                {
+                    string subject = key;
+                    string summary = items[key][innerkey];
 
-                TextProcessing(subject, summary);
+                    TextProcessing(subject + "." + innerkey, summary);
+                }
             }
         }
 
-        void TextProcessing(string title, string body)
+        void TextProcessing(string id, string body)
         {
             string[] words = body.Split(new[] { ' ', ',', ':', '?', '!', '.', '"', '-', '—' }, StringSplitOptions.RemoveEmptyEntries);
             articleWords.Add(new Dictionary<string, int>());
-            articleTitle.Add(title);
+            articleTitle.Add(id);
 
             foreach (string word in words)
             {
                 AnalysisResult ar = processor.Process(new SourceOfAnalysis(word));
-                Token t = ar.FirstToken; 
+                Token t = ar.FirstToken;
                 if (!(t is TextToken)) continue;
-                if (t.Morph.Class.IsConjunction || t.Morph.Class.IsMisc || 
-                    t.Morph.Class.IsUndefined || t.Morph.Class.IsPersonalPronoun || 
+                if (t.Morph.Class.IsConjunction || t.Morph.Class.IsMisc ||
+                    t.Morph.Class.IsUndefined || t.Morph.Class.IsPersonalPronoun ||
                     t.Morph.Class.IsPreposition || t.Morph.Class.IsPronoun) continue;
                 string norm = t.GetNormalCaseText(null, true);
                 //string norm = word.ToLower();
@@ -274,7 +277,7 @@ namespace TextAnalyzer
             return output;
         }
 
-        public Tuple<double[,], double[,]> Factorize(double[,] v, int pc = 10, int iter = 50)
+        public Tuple<double[,], double[,]> Factorize(double[,] v, int pc = 10, int iter = 20)
         {
             int ic = v.GetLength(0);
             int fc = v.GetLength(1);
@@ -301,12 +304,14 @@ namespace TextAnalyzer
                 }
             }
 
-            wh = Multiply(w, h);
+
 
             for (int i = 0; i < iter; i++)
             {
+                wh = Multiply(w, h);
+
                 var cost = MatrixCost(v, wh);
-                if (cost == 0) break;
+                if (cost == 0 || double.IsNaN(cost)) break;
 
                 double[,] hn = Multiply(Transpose(w), v);
                 double[,] hd = Multiply(Multiply(Transpose(w), w), h);
@@ -364,9 +369,10 @@ namespace TextAnalyzer
             this.wordVector = wordVector;
         }
 
-        public void Init()
+        public List<string> Init()
         {
             StreamWriter sw = new StreamWriter("features.txt");
+            List<string> groupsID = new List<string>();
 
             for (int i = 0, pc = h.GetLength(0); i < pc; i++)
             {
@@ -379,7 +385,7 @@ namespace TextAnalyzer
                     slist.Add(wordVector[j], h[i, j]);
                 }
 
-                top = slist.OrderByDescending(pair => pair.Value).Take(5).ToDictionary(pair => pair.Key, pair => pair.Value);
+                top = slist.OrderByDescending(pair => pair.Value).Take(10).ToDictionary(pair => pair.Key, pair => pair.Value);
                 foreach (string word in top.Keys)
                 {
                     sw.WriteLine(word);
@@ -398,34 +404,18 @@ namespace TextAnalyzer
                     topPatterns[i].Add(new TopPatterns { w = w[j, i], i = i, title = articleTitle[j] });
                 }
 
-                top = slist.OrderByDescending(pair => pair.Value).Take(3).ToDictionary(pair => pair.Key, pair => pair.Value);
+                top = slist.OrderByDescending(pair => pair.Value).Take(6).ToDictionary(pair => pair.Key, pair => pair.Value);
                 foreach (string word in top.Keys)
                 {
                     sw.WriteLine(word);
+                    groupsID.Add(word);
                 }
 
                 sw.Write("\n");
             }
             sw.Close();
+            return groupsID;
         }
     }
 
-    public class Utils
-    {
-        public static string ReadAllSettings()
-        {
-            try
-            {
-                string text = File.ReadAllText(@"settings.txt");
-
-                return text;
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine("Ошибка прочтения файла настроек: ");
-                Console.WriteLine(e.Message);
-                return null;
-            }
-        }
-    }
 }
